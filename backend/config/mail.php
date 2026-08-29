@@ -65,6 +65,16 @@ return [
             'transport' => 'resend',
         ],
 
+        // Brevo's HTTP API, not SMTP -- some hosts (Truehost included) transparently
+        // intercept/proxy outbound SMTP on every port, which silently swaps in their
+        // own TLS certificate and breaks the connection. Plain HTTPS avoids that
+        // entirely. Registered via Mail::extend() in AppServiceProvider since it isn't
+        // one of Laravel's built-in mailer transports.
+        'brevo' => [
+            'transport' => 'brevo',
+            'key' => env('BREVO_API_KEY'),
+        ],
+
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),

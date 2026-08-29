@@ -6,9 +6,11 @@ use App\Models\PersonalAccessToken;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\Mailer\Transport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
+        // Brevo's HTTP API transport, not one of Laravel's built-in mailer keys --
+        // see config/mail.php's 'brevo' entry for why (Truehost intercepts outbound
+        // SMTP on every port, breaking the TLS handshake; plain HTTPS sidesteps it).
+        Mail::extend('brevo', fn (array $config) => Transport::fromDsn('brevo+api://'.$config['key'].'@default'));
 
         RateLimiter::for('api', function ($request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
