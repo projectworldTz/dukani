@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Support\Tenancy\BusinessContext;
 use Closure;
 use Illuminate\Http\Request;
+use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -24,6 +25,17 @@ use Symfony\Component\HttpFoundation\Response;
  * blocks new sessions, so without this a token issued before suspension would keep
  * working for its full lifetime. `/auth/logout` stays reachable so a locked-out user
  * can still clear their own session.
+ *
+ * The Spatie permission cache is flushed here on purpose: it's a single cache entry
+ * shared across every team, not one per business, so whichever business's request
+ * happens to populate it first "poisons" the cache for every other business for up
+ * to 24h (config/permission.php cache.expiration_time) -- every other tenant's
+ * hasPermissionTo()/can() checks then silently return false even though the role
+ * really does have the permission (getAllPermissions() still reads correctly, since
+ * it doesn't go through this cache the same way, which is what makes this bug so
+ * confusing to diagnose from the symptom alone). Forcing a rebuild scoped to the
+ * current team on every request costs one extra query per request but guarantees
+ * every business always sees its own, correct permission set.
  */
 class ResolveBusiness
 {
@@ -33,6 +45,7 @@ class ResolveBusiness
 
         if ($user && $user->business_id) {
             BusinessContext::set($user->business_id);
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
 
             if ($user->business?->status !== 'active' && ! $request->is('api/v1/auth/logout')) {
                 abort(403, 'This business account is suspended.');
