@@ -1,0 +1,1519 @@
+openapi: 3.0.3
+info:
+  title: Dukani API
+  description: >
+    Multi-tenant POS/inventory/purchasing platform. Generated from the live route
+    table (`php artisan route:list`) rather than hand-transcribed, so path/method/
+    auth coverage is exhaustive and won't drift out of sync the way a hand-written
+    doc would. Request/response bodies are intentionally NOT exhaustively schema'd
+    here for the older, larger modules (Products, Purchasing, Sales, etc.) — see each
+    module's FormRequest class in app/Http/Requests for the authoritative validation
+    rules. The Auth and Platform Admin sections (recently added/changed) do have full
+    request schemas below, since those were hand-verified against their controllers.
+  version: "1.0.0"
+servers:
+  - url: /api/v1
+    description: Same-origin API (this is how the SPA calls it)
+tags:
+  - name: Audit
+  - name: Auth
+  - name: Business / Staff / RBAC
+  - name: Customers
+  - name: Expenses
+  - name: Inventory
+  - name: Notifications
+  - name: POS / Sales
+  - name: Platform Admin
+  - name: Products
+  - name: Purchasing
+  - name: Quotations
+  - name: Receipts
+  - name: Reports
+  - name: Shifts
+  - name: Stock Taking
+  - name: Stock Transfers
+components:
+  securitySchemes:
+    sanctum:
+      type: http
+      scheme: bearer
+      description: Laravel Sanctum personal access token, obtained from /auth/login or /auth/register.
+  schemas:
+    RegisterPayload:
+      type: object
+      required: [business_name, owner_name, email, password, password_confirmation]
+      properties:
+        business_name: { type: string }
+        business_category: { type: string, nullable: true }
+        owner_name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        password: { type: string, minLength: 8 }
+        password_confirmation: { type: string }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+    LoginPayload:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    AuthResponse:
+      type: object
+      properties:
+        token: { type: string }
+        user: { type: object, description: "AuthenticatedUserResource — id, name, email, email_verified_at, roles, permissions, business, ..." }
+    ForgotPasswordPayload:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+    ResetPasswordPayload:
+      type: object
+      required: [email, token, password, password_confirmation]
+      properties:
+        email: { type: string, format: email }
+        token: { type: string }
+        password: { type: string, minLength: 8 }
+        password_confirmation: { type: string }
+    VerifyEmailPayload:
+      type: object
+      required: [email, token]
+      properties:
+        email: { type: string, format: email }
+        token: { type: string }
+    ExtendLicensePayload:
+      type: object
+      required: [months]
+      properties:
+        months: { type: integer, enum: [6, 12] }
+    UpdateBusinessStatusPayload:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [active, suspended] }
+    BusinessSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        category: { type: string, nullable: true }
+        slug: { type: string }
+        currency: { type: string }
+        plan: { type: string, nullable: true }
+        status: { type: string, enum: [active, suspended] }
+        users_count: { type: integer }
+        license_expires_at: { type: string, format: date-time, nullable: true }
+    BusinessDetail:
+      allOf:
+        - $ref: '#/components/schemas/BusinessSummary'
+        - type: object
+          properties:
+            timezone: { type: string }
+            created_at: { type: string, format: date-time }
+            staff_count: { type: integer }
+            branches:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: integer }
+                  name: { type: string }
+                  code: { type: string }
+                  is_main: { type: boolean }
+                  status: { type: string }
+            owner:
+              type: object
+              nullable: true
+              properties:
+                name: { type: string }
+                email: { type: string }
+                phone: { type: string, nullable: true }
+                joined_at: { type: string, format: date-time }
+security:
+  - sanctum: []
+paths:
+  /audit-logs:
+    get:
+      tags: [Audit]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+  /auth/email/resend:
+    post:
+      tags: [Auth]
+      summary: Resend Verification Email
+      responses:
+        '200':
+          description: Success
+  /auth/email/verify:
+    post:
+      tags: [Auth]
+      summary: Verify Email
+      security: []
+      responses:
+        '200':
+          description: Success
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Forgot Password
+      security: []
+      responses:
+        '200':
+          description: Success
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      responses:
+        '200':
+          description: Success
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      responses:
+        '200':
+          description: Success
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Me
+      responses:
+        '200':
+          description: Success
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register
+      security: []
+      responses:
+        '200':
+          description: Success
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset Password
+      security: []
+      responses:
+        '200':
+          description: Success
+  /auth/sessions:
+    get:
+      tags: [Auth]
+      summary: Sessions
+      responses:
+        '200':
+          description: Success
+  "/auth/sessions/{tokenId}":
+    delete:
+      tags: [Auth]
+      summary: Revoke Session
+      parameters:
+        - name: tokenId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /branches:
+    get:
+      tags: [Business / Staff / RBAC]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Business / Staff / RBAC]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/branches/{branch}":
+    get:
+      tags: [Business / Staff / RBAC]
+      summary: Show
+      parameters:
+        - name: branch
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    put:
+      tags: [Business / Staff / RBAC]
+      summary: Update
+      parameters:
+        - name: branch
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    patch:
+      tags: [Business / Staff / RBAC]
+      summary: Update
+      parameters:
+        - name: branch
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /brands:
+    get:
+      tags: [Products]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Products]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/brands/{brand}":
+    put:
+      tags: [Products]
+      summary: Update
+      parameters:
+        - name: brand
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    patch:
+      tags: [Products]
+      summary: Update
+      parameters:
+        - name: brand
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    delete:
+      tags: [Products]
+      summary: Destroy
+      parameters:
+        - name: brand
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /business/settings:
+    get:
+      tags: [Business / Staff / RBAC]
+      summary: Show
+      responses:
+        '200':
+          description: Success
+    put:
+      tags: [Business / Staff / RBAC]
+      summary: Update
+      responses:
+        '200':
+          description: Success
+  /customers:
+    get:
+      tags: [Customers]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Customers]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/customers/{customer}":
+    get:
+      tags: [Customers]
+      summary: Show
+      parameters:
+        - name: customer
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    put:
+      tags: [Customers]
+      summary: Update
+      parameters:
+        - name: customer
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    patch:
+      tags: [Customers]
+      summary: Update
+      parameters:
+        - name: customer
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/customers/{customer}/payments":
+    post:
+      tags: [Customers]
+      summary: Record Payment
+      parameters:
+        - name: customer
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /expense-categories:
+    get:
+      tags: [Expenses]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Expenses]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  /expenses:
+    get:
+      tags: [Expenses]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Expenses]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/expenses/{expense}":
+    get:
+      tags: [Expenses]
+      summary: Show
+      parameters:
+        - name: expense
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    put:
+      tags: [Expenses]
+      summary: Update
+      parameters:
+        - name: expense
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    patch:
+      tags: [Expenses]
+      summary: Update
+      parameters:
+        - name: expense
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    delete:
+      tags: [Expenses]
+      summary: Destroy
+      parameters:
+        - name: expense
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /inventory:
+    get:
+      tags: [Inventory]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark All Read
+      responses:
+        '200':
+          description: Success
+  "/notifications/{notification}/read":
+    post:
+      tags: [Notifications]
+      summary: Mark Read
+      parameters:
+        - name: notification
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /payment-methods:
+    get:
+      tags: [POS / Sales]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [POS / Sales]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/payment-methods/{paymentMethod}":
+    put:
+      tags: [POS / Sales]
+      summary: Update
+      parameters:
+        - name: paymentMethod
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /platform/businesses:
+    get:
+      tags: [Platform Admin]
+      summary: Businesses
+      responses:
+        '200':
+          description: Success
+  "/platform/businesses/{business}":
+    get:
+      tags: [Platform Admin]
+      summary: Show
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/platform/businesses/{business}/extend-license":
+    post:
+      tags: [Platform Admin]
+      summary: Extend License
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/platform/businesses/{business}/status":
+    put:
+      tags: [Platform Admin]
+      summary: Update Business Status
+      parameters:
+        - name: business
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /platform/notifications:
+    get:
+      tags: [Platform Admin]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+  /platform/notifications/read-all:
+    post:
+      tags: [Platform Admin]
+      summary: Mark All Read
+      responses:
+        '200':
+          description: Success
+  "/platform/notifications/{notification}/read":
+    post:
+      tags: [Platform Admin]
+      summary: Mark Read
+      parameters:
+        - name: notification
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /platform/stats:
+    get:
+      tags: [Platform Admin]
+      summary: Stats
+      responses:
+        '200':
+          description: Success
+  /pos/scan:
+    post:
+      tags: [POS / Sales]
+      summary: "App\\Http\\Controllers\\Api\\V1\\Products\\Scan Controller"
+      responses:
+        '200':
+          description: Success
+  /product-batches:
+    get:
+      tags: [Inventory]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+  /product-categories:
+    get:
+      tags: [Products]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Products]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/product-categories/{productCategory}":
+    put:
+      tags: [Products]
+      summary: Update
+      parameters:
+        - name: productCategory
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    patch:
+      tags: [Products]
+      summary: Update
+      parameters:
+        - name: productCategory
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    delete:
+      tags: [Products]
+      summary: Destroy
+      parameters:
+        - name: productCategory
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /products:
+    get:
+      tags: [Products]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Products]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  /products/export:
+    get:
+      tags: [Products]
+      summary: Export
+      responses:
+        '200':
+          description: Success
+  /products/import:
+    post:
+      tags: [Products]
+      summary: Import
+      responses:
+        '200':
+          description: Success
+  /products/labels:
+    post:
+      tags: [Products]
+      summary: Labels
+      responses:
+        '200':
+          description: Success
+  "/products/{product}":
+    get:
+      tags: [Products]
+      summary: Show
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    put:
+      tags: [Products]
+      summary: Update
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    patch:
+      tags: [Products]
+      summary: Update
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    delete:
+      tags: [Products]
+      summary: Destroy
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/products/{product}/barcode.svg":
+    get:
+      tags: [Products]
+      summary: Barcode Svg
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/products/{product}/barcodes/assign":
+    post:
+      tags: [Products]
+      summary: Assign
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/products/{product}/barcodes/generate":
+    post:
+      tags: [Products]
+      summary: Generate
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/products/{product}/qr.svg":
+    get:
+      tags: [Products]
+      summary: Qr Svg
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/products/{product}/stock/adjust":
+    post:
+      tags: [Products]
+      summary: Adjust
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/products/{product}/stock/movements":
+    get:
+      tags: [Products]
+      summary: Movements
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /purchase-orders:
+    get:
+      tags: [Purchasing]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Purchasing]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/purchase-orders/{purchaseOrder}":
+    get:
+      tags: [Purchasing]
+      summary: Show
+      parameters:
+        - name: purchaseOrder
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/purchase-orders/{purchaseOrder}/convert":
+    post:
+      tags: [Purchasing]
+      summary: Convert
+      parameters:
+        - name: purchaseOrder
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/purchase-orders/{purchaseOrder}/status":
+    put:
+      tags: [Purchasing]
+      summary: Update Status
+      parameters:
+        - name: purchaseOrder
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /purchases:
+    get:
+      tags: [Purchasing]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Purchasing]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/purchases/{purchase}":
+    get:
+      tags: [Purchasing]
+      summary: Show
+      parameters:
+        - name: purchase
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/purchases/{purchase}/payments":
+    post:
+      tags: [Purchasing]
+      summary: Record Payment
+      parameters:
+        - name: purchase
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/purchases/{purchase}/receive":
+    post:
+      tags: [Purchasing]
+      summary: Receive
+      parameters:
+        - name: purchase
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/purchases/{purchase}/returns":
+    post:
+      tags: [Purchasing]
+      summary: Store
+      parameters:
+        - name: purchase
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /quotations:
+    get:
+      tags: [Quotations]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Quotations]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/quotations/{quotation}":
+    get:
+      tags: [Quotations]
+      summary: Show
+      parameters:
+        - name: quotation
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    put:
+      tags: [Quotations]
+      summary: Update
+      parameters:
+        - name: quotation
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    patch:
+      tags: [Quotations]
+      summary: Update
+      parameters:
+        - name: quotation
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/quotations/{quotation}/convert":
+    post:
+      tags: [Quotations]
+      summary: Convert
+      parameters:
+        - name: quotation
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/quotations/{quotation}/duplicate":
+    post:
+      tags: [Quotations]
+      summary: Duplicate
+      parameters:
+        - name: quotation
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/quotations/{quotation}/pdf":
+    get:
+      tags: [Quotations]
+      summary: Pdf
+      parameters:
+        - name: quotation
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/quotations/{quotation}/status":
+    put:
+      tags: [Quotations]
+      summary: Update Status
+      parameters:
+        - name: quotation
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/receipts/verify/{token}":
+    get:
+      tags: [Receipts]
+      summary: Verify
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /reports/dashboard-summary:
+    get:
+      tags: [Reports]
+      summary: Dashboard Summary
+      responses:
+        '200':
+          description: Success
+  /reports/low-stock:
+    get:
+      tags: [Reports]
+      summary: Low Stock
+      responses:
+        '200':
+          description: Success
+  /reports/profit:
+    get:
+      tags: [Reports]
+      summary: "App\\Http\\Controllers\\Api\\V1\\Reports\\Profit Report Controller"
+      responses:
+        '200':
+          description: Success
+  /reports/sales-trend:
+    get:
+      tags: [Reports]
+      summary: Sales Trend
+      responses:
+        '200':
+          description: Success
+  /reports/tax:
+    get:
+      tags: [Reports]
+      summary: Tax Report
+      responses:
+        '200':
+          description: Success
+  /reports/top-products:
+    get:
+      tags: [Reports]
+      summary: Top Products
+      responses:
+        '200':
+          description: Success
+  /roles:
+    get:
+      tags: [Business / Staff / RBAC]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Business / Staff / RBAC]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  /roles/permission-catalog:
+    get:
+      tags: [Business / Staff / RBAC]
+      summary: Permission Catalog
+      responses:
+        '200':
+          description: Success
+  "/roles/{role}/limits":
+    post:
+      tags: [Business / Staff / RBAC]
+      summary: Set Limit
+      parameters:
+        - name: role
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/roles/{role}/permissions":
+    put:
+      tags: [Business / Staff / RBAC]
+      summary: Update Permissions
+      parameters:
+        - name: role
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /sales:
+    get:
+      tags: [POS / Sales]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [POS / Sales]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  /sales/held:
+    get:
+      tags: [POS / Sales]
+      summary: Held
+      responses:
+        '200':
+          description: Success
+  "/sales/{sale}":
+    get:
+      tags: [POS / Sales]
+      summary: Show
+      parameters:
+        - name: sale
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/sales/{sale}/complete":
+    post:
+      tags: [POS / Sales]
+      summary: Complete Held
+      parameters:
+        - name: sale
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/sales/{sale}/receipt.pdf":
+    get:
+      tags: [POS / Sales]
+      summary: Pdf
+      parameters:
+        - name: sale
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/sales/{sale}/receipt/email":
+    post:
+      tags: [POS / Sales]
+      summary: Email
+      parameters:
+        - name: sale
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/sales/{sale}/returns":
+    post:
+      tags: [POS / Sales]
+      summary: Store
+      parameters:
+        - name: sale
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /shifts:
+    get:
+      tags: [Shifts]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+  /shifts/current:
+    get:
+      tags: [Shifts]
+      summary: Current
+      responses:
+        '200':
+          description: Success
+  /shifts/open:
+    post:
+      tags: [Shifts]
+      summary: Open
+      responses:
+        '200':
+          description: Success
+  "/shifts/{cashierShift}/close":
+    post:
+      tags: [Shifts]
+      summary: Close
+      parameters:
+        - name: cashierShift
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /staff:
+    get:
+      tags: [Business / Staff / RBAC]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Business / Staff / RBAC]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/staff/{user}":
+    get:
+      tags: [Business / Staff / RBAC]
+      summary: Show
+      parameters:
+        - name: user
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    put:
+      tags: [Business / Staff / RBAC]
+      summary: Update
+      parameters:
+        - name: user
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    patch:
+      tags: [Business / Staff / RBAC]
+      summary: Update
+      parameters:
+        - name: user
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /stock-takes:
+    get:
+      tags: [Stock Taking]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Stock Taking]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/stock-takes/{stockTake}":
+    get:
+      tags: [Stock Taking]
+      summary: Show
+      parameters:
+        - name: stockTake
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/stock-takes/{stockTake}/approve":
+    post:
+      tags: [Stock Taking]
+      summary: Approve
+      parameters:
+        - name: stockTake
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/stock-takes/{stockTake}/counts":
+    put:
+      tags: [Stock Taking]
+      summary: Record Counts
+      parameters:
+        - name: stockTake
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/stock-takes/{stockTake}/submit":
+    post:
+      tags: [Stock Taking]
+      summary: Submit
+      parameters:
+        - name: stockTake
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /stock-transfers:
+    get:
+      tags: [Stock Transfers]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Stock Transfers]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/stock-transfers/{stockTransfer}":
+    get:
+      tags: [Stock Transfers]
+      summary: Show
+      parameters:
+        - name: stockTransfer
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/stock-transfers/{stockTransfer}/approve":
+    post:
+      tags: [Stock Transfers]
+      summary: Approve
+      parameters:
+        - name: stockTransfer
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/stock-transfers/{stockTransfer}/cancel":
+    post:
+      tags: [Stock Transfers]
+      summary: Cancel
+      parameters:
+        - name: stockTransfer
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/stock-transfers/{stockTransfer}/dispatch":
+    post:
+      tags: [Stock Transfers]
+      summary: Dispatch
+      parameters:
+        - name: stockTransfer
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/stock-transfers/{stockTransfer}/receive":
+    post:
+      tags: [Stock Transfers]
+      summary: Receive
+      parameters:
+        - name: stockTransfer
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  "/stock-transfers/{stockTransfer}/request":
+    post:
+      tags: [Stock Transfers]
+      summary: Request
+      parameters:
+        - name: stockTransfer
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /suppliers:
+    get:
+      tags: [Purchasing]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Purchasing]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/suppliers/{supplier}":
+    get:
+      tags: [Purchasing]
+      summary: Show
+      parameters:
+        - name: supplier
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    put:
+      tags: [Purchasing]
+      summary: Update
+      parameters:
+        - name: supplier
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    patch:
+      tags: [Purchasing]
+      summary: Update
+      parameters:
+        - name: supplier
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    delete:
+      tags: [Purchasing]
+      summary: Destroy
+      parameters:
+        - name: supplier
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+  /units:
+    get:
+      tags: [Products]
+      summary: Index
+      responses:
+        '200':
+          description: Success
+    post:
+      tags: [Products]
+      summary: Store
+      responses:
+        '200':
+          description: Success
+  "/units/{unit}":
+    put:
+      tags: [Products]
+      summary: Update
+      parameters:
+        - name: unit
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    patch:
+      tags: [Products]
+      summary: Update
+      parameters:
+        - name: unit
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+    delete:
+      tags: [Products]
+      summary: Destroy
+      parameters:
+        - name: unit
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success

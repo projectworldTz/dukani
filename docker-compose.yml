@@ -1,0 +1,47 @@
+# Dukani local development services.
+#
+# Required:
+#   postgres — the application database. Bring it up with:
+#     docker compose up -d postgres
+#
+# Optional (uncomment when needed — not required for local dev, Laravel uses the
+# `database` driver for cache/queue/session locally, same as the sibling projects):
+#   redis    — production-parity cache/queue/session driver
+#   mailpit  — local SMTP catcher with a web UI at http://localhost:8025
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dukani_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dukani
+      POSTGRES_USER: dukani
+      POSTGRES_PASSWORD: dukani
+    ports:
+      - "5432:5432"
+    volumes:
+      - dukani_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dukani -d dukani"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: dukani_redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+
+  # mailpit:
+  #   image: axllent/mailpit
+  #   container_name: dukani_mailpit
+  #   restart: unless-stopped
+  #   ports:
+  #     - "1025:1025"
+  #     - "8025:8025"
+
+volumes:
+  dukani_postgres_data:
