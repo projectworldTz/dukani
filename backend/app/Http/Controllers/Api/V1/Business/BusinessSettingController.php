@@ -23,9 +23,10 @@ class BusinessSettingController extends Controller
         $business = $request->user()->business;
         $data = $request->validated();
 
-        if (isset($data['currency'])) {
-            $business->update(['currency' => $data['currency']]);
-            unset($data['currency']);
+        $businessAttributes = array_intersect_key($data, array_flip(['name', 'currency']));
+        if ($businessAttributes) {
+            $business->update($businessAttributes);
+            $data = array_diff_key($data, $businessAttributes);
         }
 
         $business->settings()->update($data);

@@ -2,9 +2,11 @@ import { Box, Button, FormControlLabel, Paper, Stack, Switch, TextField, Typogra
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { businessApi } from '../../api/endpoints/business'
+import { useAuthStore } from '../../stores/authStore'
 
 export function SettingsPage() {
   const queryClient = useQueryClient()
+  const { user, setUser } = useAuthStore()
   const query = useQuery({ queryKey: ['business-settings'], queryFn: businessApi.settings })
   const [form, setForm] = useState<Record<string, string>>({})
   const [loyaltyEnabled, setLoyaltyEnabled] = useState(false)
@@ -12,6 +14,7 @@ export function SettingsPage() {
   useEffect(() => {
     if (query.data) {
       setForm({
+        name: query.data.business.name ?? '',
         currency: query.data.business.currency ?? '',
         address: query.data.settings?.address ?? '',
         phone: query.data.settings?.phone ?? '',
@@ -35,7 +38,12 @@ export function SettingsPage() {
         loyalty_spend_per_point: Number(form.loyalty_spend_per_point),
         loyalty_point_value: Number(form.loyalty_point_value),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['business-settings'] }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['business-settings'] })
+      if (user && data?.business) {
+        setUser({ ...user, business: { ...(user.business ?? {}), ...data.business } })
+      }
+    },
     meta: { successMessage: 'Settings saved.' },
   })
 
@@ -47,6 +55,7 @@ export function SettingsPage() {
 
       <Paper variant="outlined" sx={{ p: 3, maxWidth: 480 }}>
         <Stack spacing={2}>
+          <TextField label="Business Name" value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <TextField label="Currency" value={form.currency ?? ''} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
           <TextField label="Address" value={form.address ?? ''} onChange={(e) => setForm({ ...form, address: e.target.value })} />
           <TextField label="Phone" value={form.phone ?? ''} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
