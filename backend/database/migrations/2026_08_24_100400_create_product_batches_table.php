@@ -26,7 +26,7 @@ return new class extends Migration
             $table->foreignId('purchase_item_id')->nullable()->constrained('purchase_items')->nullOnDelete();
             $table->timestamps();
 
-            $table->unique(['business_id', 'product_id', 'branch_id', 'batch_number']);
+            $table->unique(['business_id', 'product_id', 'branch_id', 'batch_number'], 'product_batches_business_product_branch_batch_unique');
             $table->index(['business_id', 'expiry_date']);
         });
     }
