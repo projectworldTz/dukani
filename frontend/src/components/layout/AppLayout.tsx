@@ -19,6 +19,7 @@ import {
   Storefront,
   StorefrontRounded,
   SwapHoriz,
+  VisibilityRounded,
 } from '@mui/icons-material'
 import {
   Alert,
@@ -87,7 +88,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
-  const { user, hasPermission, clear } = useAuthStore()
+  const { user, hasPermission, clear, adminSession, exitImpersonation } = useAuthStore()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -128,6 +129,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
     } finally {
       clear()
       navigate('/login')
+    }
+  }
+
+  async function handleExitImpersonation() {
+    try {
+      await authApi.logout()
+    } catch {
+      // Impersonation token may already be expired/revoked — exiting the view still proceeds either way.
+    } finally {
+      exitImpersonation()
+      navigate('/platform')
     }
   }
 
@@ -357,6 +369,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </Box>
           </Toolbar>
         </AppBar>
+        {adminSession && (
+          <Alert
+            severity="info"
+            icon={<VisibilityRounded fontSize="small" />}
+            sx={{ borderRadius: 0, bgcolor: 'warning.light' }}
+            action={
+              <Button color="inherit" size="small" onClick={handleExitImpersonation} sx={{ fontWeight: 700 }}>
+                Exit to Platform Admin
+              </Button>
+            }
+          >
+            Viewing Dukani as <strong>{user?.business?.name ?? user?.name}</strong> — actions you take here affect their real data.
+          </Alert>
+        )}
         {user && !user.is_platform_admin && !user.email_verified_at && (
           <Alert
             severity="warning"

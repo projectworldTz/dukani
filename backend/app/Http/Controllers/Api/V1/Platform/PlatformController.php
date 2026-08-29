@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Platform;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AuthenticatedUserResource;
 use App\Models\Business;
 use App\Models\Sale;
+use App\Models\Scopes\BusinessScope;
+use App\Models\User;
 use App\Services\Audit\AuditLogger;
 use App\Support\Tenancy\BusinessContext;
 use Illuminate\Http\Request;
@@ -195,6 +198,47 @@ class PlatformController extends Controller
         $business->update(['deletion_reason' => null]);
 
         return $business;
+    }
+
+    /**
+     * "View as Owner": issues a short-lived Sanctum token for the business's owner so
+     * the Platform Admin can browse/support the app exactly as that owner sees it --
+     * the standard "log in as customer" pattern, reusing the whole app instead of a
+     * separate read-only view. The admin's own token is left untouched; the frontend
+     * holds onto it and swaps back on "Exit impersonation" without a fresh login.
+     * Deliberately full owner access, not read-only -- restricting it would just make
+     * this useless for the actual support scenarios it exists for (walking through a
+     * client's real data entry, reproducing a bug they hit) -- so the token expires in
+     * an hour and every use is audit logged (business_id null, a platform-level action
+     * like suspend/delete) for accountability over what is otherwise unrestricted
+     * access to a client's live business.
+     */
+    public function impersonate(Request $request, Business $business)
+    {
+        $this->assertPlatformAdmin($request);
+
+        abort_if($business->trashed(), 404);
+
+        $owner = BusinessContext::runAsPlatform(
+            fn () => User::withoutGlobalScope(BusinessScope::class)->find($business->owner_user_id)
+        );
+        abort_unless($owner, 404, 'This business has no owner account.');
+
+        $this->auditLogger->log(
+            'business.impersonated',
+            $business,
+            newValues: ['owner_id' => $owner->id, 'owner_email' => $owner->email],
+            request: $request,
+        );
+
+        BusinessContext::set($business->id);
+        $owner->load('business');
+        $token = $owner->createToken('platform-impersonation', ['*'], now()->addHour())->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user' => new AuthenticatedUserResource($owner),
+        ]);
     }
 
     public function stats(Request $request)

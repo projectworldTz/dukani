@@ -1,4 +1,4 @@
-import { Block, CheckCircle, DeleteForever, EventAvailable, RestoreFromTrash } from '@mui/icons-material'
+import { Block, CheckCircle, DeleteForever, EventAvailable, RestoreFromTrash, VisibilityRounded } from '@mui/icons-material'
 import {
   Box,
   Button,
@@ -27,7 +27,9 @@ import {
 } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { platformApi } from '../../api/endpoints/platform'
+import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
 import { BusinessDetailDialog } from './BusinessDetailDialog'
 
@@ -80,6 +82,8 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
 
 export function PlatformAdminPage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const startImpersonation = useAuthStore((s) => s.startImpersonation)
   const [detailId, setDetailId] = useState<number | null>(null)
   const [showTrashed, setShowTrashed] = useState(false)
   const [reasonDialog, setReasonDialog] = useState<{ mode: 'delete' | 'restore'; id: number; name: string } | null>(null)
@@ -121,6 +125,15 @@ export function PlatformAdminPage() {
       queryClient.invalidateQueries({ queryKey: ['platform'] })
       useToastStore.getState().show('Business restored.', 'success')
       closeReasonDialog()
+    },
+  })
+
+  const impersonateMutation = useMutation({
+    mutationFn: (id: number) => platformApi.impersonate(id),
+    onSuccess: ({ token, user }) => {
+      startImpersonation(token, user)
+      navigate('/dashboard')
+      useToastStore.getState().show(`Viewing Dukani as ${user.business?.name ?? user.name}.`, 'success')
     },
   })
 
@@ -226,6 +239,17 @@ export function PlatformAdminPage() {
                       </Button>
                     ) : (
                       <>
+                        <Tooltip title="Sign in as this business's owner to see exactly what they see">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<VisibilityRounded />}
+                            loading={impersonateMutation.isPending}
+                            onClick={() => impersonateMutation.mutate(b.id)}
+                          >
+                            View as Owner
+                          </Button>
+                        </Tooltip>
                         <Tooltip title="Extend license by 6 months">
                           <Button
                             size="small"

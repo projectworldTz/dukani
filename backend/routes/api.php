@@ -180,6 +180,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/platform/businesses/{businessId}', [PlatformController::class, 'show']);
         Route::put('/platform/businesses/{business}/status', [PlatformController::class, 'updateBusinessStatus']);
         Route::post('/platform/businesses/{business}/extend-license', [PlatformController::class, 'extendLicense']);
+        Route::post('/platform/businesses/{business}/impersonate', [PlatformController::class, 'impersonate']);
         Route::delete('/platform/businesses/{business}', [PlatformController::class, 'destroy']);
         Route::post('/platform/businesses/{businessId}/restore', [PlatformController::class, 'restore']);
         Route::get('/platform/stats', [PlatformController::class, 'stats']);

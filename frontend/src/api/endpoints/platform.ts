@@ -1,4 +1,5 @@
 import { api } from '../client'
+import type { AuthUser } from '../../types'
 import type { AppNotification } from './notifications'
 
 export interface PlatformBusiness {
@@ -41,6 +42,8 @@ export const platformApi = {
     api.put(`/platform/businesses/${id}/status`, { status }).then((r) => r.data),
   extendLicense: (id: number, months: 6 | 12) =>
     api.post(`/platform/businesses/${id}/extend-license`, { months }).then((r) => r.data),
+  impersonate: (id: number) =>
+    api.post<{ token: string; user: AuthUser }>(`/platform/businesses/${id}/impersonate`).then((r) => r.data),
   deleteBusiness: (id: number, reason: string) =>
     api.delete<{ message: string }>(`/platform/businesses/${id}`, { data: { reason } }).then((r) => r.data),
   restoreBusiness: (id: number, reason: string) =>

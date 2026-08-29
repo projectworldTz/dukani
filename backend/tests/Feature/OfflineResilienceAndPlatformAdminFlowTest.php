@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Product;
@@ -175,6 +176,60 @@ class OfflineResilienceAndPlatformAdminFlowTest extends TestCase
         $this->assertNull($business->fresh()->deletion_reason);
 
         $this->postJson('/api/v1/auth/login', ['email' => $owner['email'], 'password' => 'password123'])->assertOk();
+    }
+
+    public function test_platform_admin_can_view_a_business_as_its_owner(): void
+    {
+        [$ownerToken, $owner, $business] = $this->registerBusiness();
+
+        $this->withToken($ownerToken)->postJson('/api/v1/products', [
+            'name' => 'Sugar 2kg', 'cost_price' => 3000, 'selling_price' => 4200,
+        ])->assertCreated();
+
+        // A regular business user -- even the owner of a different business -- must
+        // not be able to impersonate anyone.
+        [$otherOwnerToken] = $this->registerBusiness('other@example.com');
+        \Illuminate\Support\Facades\Auth::forgetGuards();
+        $this->withToken($otherOwnerToken)->postJson("/api/v1/platform/businesses/{$business->id}/impersonate")
+            ->assertStatus(403);
+
+        BusinessContext::set(null);
+        $admin = User::factory()->create(['business_id' => null]);
+        $adminToken = $admin->createToken('test-admin')->plainTextToken;
+
+        // Sanctum's guard caches the resolved user on the guard instance, which
+        // Laravel's TestCase does not tear down between simulated requests in the same
+        // test method the way a real new HTTP request would -- forgetGuards() forces a
+        // fresh resolution from each new Bearer token instead of silently reusing
+        // whoever was authenticated on the previous call.
+        \Illuminate\Support\Facades\Auth::forgetGuards();
+        $response = $this->withToken($adminToken)->postJson("/api/v1/platform/businesses/{$business->id}/impersonate")
+            ->assertOk()
+            ->json();
+
+        $this->assertSame($owner['id'], $response['user']['id']);
+        $this->assertSame('Mama Nia Shop', $response['user']['business']['name']);
+
+        // The impersonation token genuinely acts as the owner -- same tenant-scoped
+        // data and real write access, not a separate read-only view.
+        \Illuminate\Support\Facades\Auth::forgetGuards();
+        $products = $this->withToken($response['token'])->getJson('/api/v1/products')->assertOk()->json();
+        $this->assertSame('Sugar 2kg', $products['data'][0]['name']);
+
+        \Illuminate\Support\Facades\Auth::forgetGuards();
+        $canCreate = $this->withToken($response['token'])->postJson('/api/v1/products', [
+            'name' => 'Flour 2kg', 'cost_price' => 2500, 'selling_price' => 3500,
+        ])->assertCreated();
+        $this->assertSame($business->id, Product::find($canCreate->json('id'))->business_id);
+
+        // The audit entry is a platform-level action (business_id null, like
+        // suspend/delete), so it must be read back the same way -- BusinessContext is
+        // left pointing at the owner's business after the requests above, and
+        // AuditLog is itself business-scoped.
+        $log = BusinessContext::runAsPlatform(fn () => AuditLog::where('action', 'business.impersonated')->first());
+        $this->assertNotNull($log);
+        $this->assertSame($business->id, $log->auditable_id);
+        $this->assertSame($admin->id, $log->user_id);
     }
 
     public function test_platform_admin_is_notified_when_a_new_business_registers(): void
