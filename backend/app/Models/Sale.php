@@ -17,6 +17,8 @@ class Sale extends Model
         'subtotal', 'discount_total', 'tax_total', 'grand_total',
         'amount_paid', 'change_amount', 'loyalty_points_earned', 'loyalty_points_redeemed',
         'currency', 'notes', 'receipt_verification_token', 'idempotency_key', 'completed_at',
+        'fiscal_status', 'fiscal_receipt_number', 'fiscal_verification_code',
+        'fiscal_verification_url', 'fiscal_z_number', 'fiscalized_at', 'fiscal_error',
     ];
 
     protected function casts(): array
@@ -29,6 +31,7 @@ class Sale extends Model
             'amount_paid' => 'decimal:2',
             'change_amount' => 'decimal:2',
             'completed_at' => 'datetime',
+            'fiscalized_at' => 'datetime',
         ];
     }
 

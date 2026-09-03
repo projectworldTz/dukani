@@ -141,6 +141,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/sales/{sale}/receipt.pdf', [ReceiptController::class, 'pdf']);
         Route::post('/sales/{sale}/receipt/email', [ReceiptController::class, 'email']);
+        Route::post('/sales/{sale}/fiscalize', [SaleController::class, 'fiscalize']);
 
         // --- Customers / Credit / Loyalty (Phase 3) -----------------------------
         Route::apiResource('customers', CustomerController::class)->except('destroy');

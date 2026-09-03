@@ -46,6 +46,12 @@ class SaleResource extends JsonResource
             ])),
             'completed_at' => $this->completed_at,
             'created_at' => $this->created_at,
+            'fiscal_status' => $this->fiscal_status,
+            'fiscal_receipt_number' => $this->fiscal_receipt_number,
+            'fiscal_verification_code' => $this->fiscal_verification_code,
+            'fiscal_verification_url' => $this->fiscal_verification_url,
+            'fiscal_z_number' => $this->fiscal_z_number,
+            'fiscalized_at' => $this->fiscalized_at,
         ];
     }
 }

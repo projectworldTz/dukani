@@ -33,6 +33,10 @@ class ProductResource extends JsonResource
             'has_batch' => $this->has_batch,
             'has_serial' => $this->has_serial,
             'status' => $this->status,
+            'available_stock' => $this->when(
+                array_key_exists('available_stock', $this->resource->getAttributes()),
+                fn () => (int) ($this->available_stock ?? 0),
+            ),
             'barcodes' => $this->whenLoaded('barcodes', fn () => $this->barcodes->map(fn ($b) => [
                 'code' => $b->code, 'type' => $b->type, 'is_primary' => $b->is_primary,
             ])),

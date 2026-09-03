@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Barcode;
 use App\Models\Product;
+use App\Support\Tenancy\BusinessContext;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Unified lookup for the POS checkout screen (spec §6/§7): a USB/Bluetooth scanner
@@ -18,7 +20,10 @@ class ScanController extends Controller
 {
     public function __invoke(Request $request)
     {
-        $request->validate(['code' => ['required', 'string']]);
+        $request->validate([
+            'code' => ['required', 'string'],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('business_id', BusinessContext::id())],
+        ]);
         $code = $request->string('code')->toString();
 
         if (str_starts_with($code, 'dukani:product:')) {
@@ -30,6 +35,13 @@ class ScanController extends Controller
 
         if (! $product || $product->status !== 'active') {
             return response()->json(['message' => 'Product not found.'], 404);
+        }
+
+        if ($request->filled('branch_id')) {
+            $product->loadSum(
+                ['inventories as available_stock' => fn ($inventory) => $inventory->where('branch_id', $request->integer('branch_id'))],
+                'quantity',
+            );
         }
 
         return new ProductResource($product->load(['category', 'brand', 'unit', 'barcodes']));

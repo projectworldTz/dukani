@@ -53,6 +53,7 @@ export interface Product {
   has_batch: boolean
   has_serial: boolean
   status: 'active' | 'inactive'
+  available_stock?: number
   barcodes: { code: string; type: string; is_primary: boolean }[]
   created_at: string
 }
@@ -115,6 +116,12 @@ export interface Sale {
   payments?: { payment_method: string; amount: string; reference: string | null }[]
   completed_at: string | null
   created_at: string
+  fiscal_status?: 'not_required' | 'pending' | 'fiscalized' | 'failed'
+  fiscal_receipt_number?: string | null
+  fiscal_verification_code?: string | null
+  fiscal_verification_url?: string | null
+  fiscal_z_number?: string | null
+  fiscalized_at?: string | null
 }
 
 export interface StaffMember {

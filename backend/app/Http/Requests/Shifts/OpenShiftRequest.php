@@ -15,8 +15,15 @@ class OpenShiftRequest extends FormRequest
 
     public function rules(): array
     {
+        $assignedBranchId = $this->user()->staffProfile?->branch_id;
+
         return [
-            'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')->where('business_id', BusinessContext::id())],
+            'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')->where(function ($query) use ($assignedBranchId) {
+                $query->where('business_id', BusinessContext::id());
+                if ($assignedBranchId) {
+                    $query->where('id', $assignedBranchId);
+                }
+            })],
             'opening_cash' => ['required', 'numeric', 'min:0'],
         ];
     }

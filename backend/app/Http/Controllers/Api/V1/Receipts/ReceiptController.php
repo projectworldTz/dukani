@@ -23,7 +23,7 @@ class ReceiptController extends Controller
         $this->authorizeReceiptAccess($user, $sale);
 
         $request->validate(['paper' => ['nullable', Rule::in(['58mm', '80mm', 'a4'])]]);
-        $paper = $request->string('paper', '80mm')->toString();
+        $paper = $request->string('paper', $user->business->settings?->receipt_paper_size ?? '80mm')->toString();
 
         $pdf = $this->buildPdf($sale, $user->business, $paper);
 
@@ -51,7 +51,7 @@ class ReceiptController extends Controller
         $recipient = $data['email'] ?? $sale->customer?->email;
         abort_unless($recipient, 422, 'No email address on file for this sale — provide one.');
 
-        $pdf = $this->buildPdf($sale, $user->business, $data['paper'] ?? '80mm');
+        $pdf = $this->buildPdf($sale, $user->business, $data['paper'] ?? $user->business->settings?->receipt_paper_size ?? '80mm');
 
         Mail::to($recipient)->send(new SaleReceiptMail($sale, $pdf->output()));
 
@@ -73,9 +73,11 @@ class ReceiptController extends Controller
     {
         $sale->loadMissing('items', 'payments.paymentMethod', 'cashier', 'branch');
 
-        $qrSvg = $sale->receipt_verification_token
-            ? $this->qrCodeService->svg($this->qrCodeService->receiptPayload($sale->receipt_verification_token), 120)
-            : null;
+        $isFiscal = $sale->fiscal_status === 'fiscalized' && $sale->fiscal_verification_url;
+        $qrPayload = $isFiscal
+            ? $sale->fiscal_verification_url
+            : ($sale->receipt_verification_token ? $this->qrCodeService->receiptPayload($sale->receipt_verification_token) : null);
+        $qrSvg = $qrPayload ? $this->qrCodeService->svg($qrPayload, 135) : null;
 
         $pdf = Pdf::loadView('receipts.receipt', [
             'sale' => $sale,
@@ -84,6 +86,7 @@ class ReceiptController extends Controller
             'branch' => $sale->branch,
             'paper' => $paper,
             'qrSvg' => $qrSvg,
+            'isFiscal' => $isFiscal,
         ]);
 
         if ($paper === '58mm') {

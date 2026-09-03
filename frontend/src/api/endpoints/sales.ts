@@ -17,6 +17,7 @@ export interface CreateSalePayload {
   notes?: string
   hold?: boolean
   redeem_points?: number
+  idempotency_key?: string
   items: SaleItemPayload[]
   payments?: { payment_method_id: number; amount: number; reference?: string }[]
 }
@@ -44,4 +45,5 @@ export const salesApi = {
       .then((r) => URL.createObjectURL(r.data as Blob)),
   emailReceipt: (id: number, email: string | undefined, paper: '58mm' | '80mm' | 'a4' = '80mm') =>
     api.post<{ message: string }>(`/sales/${id}/receipt/email`, { email, paper }).then((r) => r.data),
+  fiscalize: (id: number) => api.post<Sale>(`/sales/${id}/fiscalize`).then((r) => r.data),
 }

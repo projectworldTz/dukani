@@ -57,6 +57,9 @@ class PosFoundationFlowTest extends TestCase
     {
         [$ownerToken] = $this->registerBusiness();
         $branchId = Branch::firstOrFail()->id;
+        $otherBranchId = $this->withToken($ownerToken)->postJson('/api/v1/branches', [
+            'name' => 'Other Branch', 'code' => 'OTHER',
+        ])->assertCreated()->json('id');
 
         $response = $this->withToken($ownerToken)->postJson('/api/v1/staff', [
             'name' => 'Seller',
@@ -81,6 +84,10 @@ class PosFoundationFlowTest extends TestCase
         ])->assertCreated();
 
         // ... and open a shift + ring up a sale (Cashier), all as one account.
+        $this->postJson('/api/v1/shifts/open', [
+            'branch_id' => $otherBranchId, 'opening_cash' => 10000,
+        ])->assertUnprocessable();
+
         $this->postJson('/api/v1/shifts/open', [
             'branch_id' => $branchId, 'opening_cash' => 10000,
         ])->assertCreated();
@@ -152,6 +159,12 @@ class PosFoundationFlowTest extends TestCase
             'branch_id' => $branch->id, 'quantity_change' => 10, 'type' => 'opening_stock',
         ])->assertCreated();
 
+        $catalogProduct = $this->withToken($ownerToken)
+            ->getJson("/api/v1/products?branch_id={$branch->id}&search=Cooking%20Oil")
+            ->assertOk()
+            ->json('data.0');
+        $this->assertSame(10, $catalogProduct['available_stock']);
+
         $shift = $this->withToken($ownerToken)->postJson('/api/v1/shifts/open', [
             'branch_id' => $branch->id, 'opening_cash' => 50000,
         ])->assertCreated()->json();
@@ -173,8 +186,32 @@ class PosFoundationFlowTest extends TestCase
         $this->assertEquals(47200, $sale['grand_total']);
         $this->assertEquals(2800, $sale['change_amount']);
 
+        // Browser-supplied prices are ignored; the server remains authoritative.
+        $serverPricedSale = $this->withToken($ownerToken)->postJson('/api/v1/sales', [
+            'branch_id' => $branch->id,
+            'shift_id' => $shift['id'],
+            'items' => [['product_id' => $product['id'], 'quantity' => 1, 'unit_price' => 1]],
+            'payments' => [['payment_method_id' => $cashMethodId, 'amount' => 23600]],
+        ])->assertCreated()->json();
+        $this->assertEquals(23600, $serverPricedSale['grand_total']);
+
+        $this->withToken($ownerToken)->postJson('/api/v1/sales', [
+            'branch_id' => $branch->id,
+            'shift_id' => $shift['id'],
+            'items' => [['product_id' => $product['id'], 'quantity' => 1, 'discount_amount' => 25000]],
+            'payments' => [['payment_method_id' => $cashMethodId, 'amount' => 1]],
+        ])->assertUnprocessable();
+
+        $mobileMethodId = collect($methods)->firstWhere('type', 'mobile_money')['id'];
+        $this->withToken($ownerToken)->postJson('/api/v1/sales', [
+            'branch_id' => $branch->id,
+            'shift_id' => $shift['id'],
+            'items' => [['product_id' => $product['id'], 'quantity' => 1]],
+            'payments' => [['payment_method_id' => $mobileMethodId, 'amount' => 25000]],
+        ])->assertUnprocessable();
+
         $product = Product::find($product['id']);
-        $this->assertSame(8, $product->inventories()->where('branch_id', $branch->id)->value('quantity'));
+        $this->assertSame(7, $product->inventories()->where('branch_id', $branch->id)->value('quantity'));
 
         // Insufficient stock is rejected cleanly, not silently allowed negative.
         $this->withToken($ownerToken)->postJson('/api/v1/sales', [

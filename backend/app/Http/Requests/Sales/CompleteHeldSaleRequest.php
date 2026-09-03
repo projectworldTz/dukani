@@ -18,7 +18,7 @@ class CompleteHeldSaleRequest extends FormRequest
         $businessId = BusinessContext::id();
 
         return [
-            'payments' => ['required', 'array'],
+            'payments' => ['present', 'array'],
             'payments.*.payment_method_id' => ['required', 'integer', Rule::exists('payment_methods', 'id')->where('business_id', $businessId)],
             'payments.*.amount' => ['required', 'numeric', 'min:0.01'],
             'payments.*.reference' => ['nullable', 'string', 'max:255'],

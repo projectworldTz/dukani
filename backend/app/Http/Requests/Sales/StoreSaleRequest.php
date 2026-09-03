@@ -31,10 +31,9 @@ class StoreSaleRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('business_id', $businessId)],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
 
-            'payments' => ['required_if:hold,false', 'array'],
+            'payments' => ['exclude_if:hold,true', 'present', 'array'],
             'payments.*.payment_method_id' => ['required_with:payments', 'integer', Rule::exists('payment_methods', 'id')->where('business_id', $businessId)],
             'payments.*.amount' => ['required_with:payments', 'numeric', 'min:0.01'],
             'payments.*.reference' => ['nullable', 'string', 'max:255'],

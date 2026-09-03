@@ -7,7 +7,7 @@ interface Paginated<T> {
 }
 
 export const productsApi = {
-  list: (params?: { search?: string; category_id?: number; status?: string; page?: number }) =>
+  list: (params?: { search?: string; category_id?: number; status?: string; branch_id?: number; page?: number }) =>
     api.get<Paginated<Product>>('/products', { params }).then((r) => r.data),
   create: (data: FormData) =>
     api.post<Product>('/products', data, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data),
@@ -23,7 +23,7 @@ export const productsApi = {
   generateBarcode: (id: number) => api.post(`/products/${id}/barcodes/generate`, { primary: true }).then((r) => r.data),
   assignBarcode: (id: number, code: string, type: string) =>
     api.post(`/products/${id}/barcodes/assign`, { code, type, primary: true }).then((r) => r.data),
-  scan: (code: string) => api.post<Product>('/pos/scan', { code }).then((r) => r.data),
+  scan: (code: string, branchId?: number) => api.post<Product>('/pos/scan', { code, branch_id: branchId }).then((r) => r.data),
   exportCsvBlobUrl: () => api.get('/products/export', { responseType: 'blob' }).then((r) => URL.createObjectURL(r.data as Blob)),
   importCsv: (file: File) => {
     const data = new FormData()

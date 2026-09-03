@@ -20,6 +20,10 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $products = Product::with(['category', 'brand', 'unit', 'barcodes'])
+            ->when($request->filled('branch_id'), fn ($q) => $q->withSum(
+                ['inventories as available_stock' => fn ($inventory) => $inventory->where('branch_id', $request->integer('branch_id'))],
+                'quantity',
+            ))
             ->when($request->filled('search'), fn ($q) => $q->where(function ($q) use ($request) {
                 $term = '%'.$request->string('search').'%';
                 $q->where('name', 'like', $term)

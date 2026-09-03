@@ -11,7 +11,7 @@ export function OpenShiftGate({ children }: { children: (branchId: number, shift
   const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
   const [branchId, setBranchId] = useState<number | ''>(user?.branch_id ?? '')
-  const [openingCash, setOpeningCash] = useState('')
+  const [openingCash, setOpeningCash] = useState('0')
 
   const shiftQuery = useQuery({ queryKey: ['shift', 'current'], queryFn: shiftsApi.current })
   const branchesQuery = useQuery({ queryKey: ['branches'], queryFn: branchesApi.list })
@@ -30,6 +30,8 @@ export function OpenShiftGate({ children }: { children: (branchId: number, shift
     return <>{children(shiftQuery.data.branch_id, shiftQuery.data.id)}</>
   }
 
+  const assignedBranch = user?.branch_id ? branchesQuery.data?.find((branch) => branch.id === user.branch_id) : null
+
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
       <Paper variant="outlined" sx={{ p: 4, width: 380 }}>
@@ -40,18 +42,21 @@ export function OpenShiftGate({ children }: { children: (branchId: number, shift
           Declare your opening cash float before ringing up sales.
         </Typography>
         <Stack spacing={2}>
-          <TextField select label="Branch" value={branchId} onChange={(e) => setBranchId(Number(e.target.value))}>
-            {branchesQuery.data?.map((b) => (
-              <MenuItem key={b.id} value={b.id}>
-                {b.name}
-              </MenuItem>
-            ))}
-          </TextField>
+          {assignedBranch ? (
+            <TextField label="Register location" value={assignedBranch.name} slotProps={{ input: { readOnly: true } }} helperText="Your account is assigned to this branch." />
+          ) : (
+            <TextField select label="Branch" value={branchId} onChange={(e) => setBranchId(Number(e.target.value))}>
+              {branchesQuery.data?.map((b) => (
+                <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
+              ))}
+            </TextField>
+          )}
           <TextField
             label="Opening cash"
             type="number"
             value={openingCash}
             onChange={(e) => setOpeningCash(e.target.value)}
+            helperText="Enter 0 if the cash drawer starts empty."
           />
           <Button
             variant="contained"

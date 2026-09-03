@@ -23,6 +23,11 @@ class BusinessSetting extends Model
         'loyalty_enabled',
         'loyalty_spend_per_point',
         'loyalty_point_value',
+        'efd_enabled',
+        'efd_serial',
+        'efd_uin',
+        'tax_office',
+        'receipt_paper_size',
     ];
 
     protected function casts(): array
@@ -33,6 +38,7 @@ class BusinessSetting extends Model
             'loyalty_enabled' => 'boolean',
             'loyalty_spend_per_point' => 'decimal:2',
             'loyalty_point_value' => 'decimal:2',
+            'efd_enabled' => 'boolean',
         ];
     }
 }

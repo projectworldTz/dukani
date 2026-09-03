@@ -7,12 +7,13 @@ use App\Http\Requests\Sales\CompleteHeldSaleRequest;
 use App\Http\Requests\Sales\StoreSaleRequest;
 use App\Http\Resources\SaleResource;
 use App\Models\Sale;
+use App\Services\Fiscal\FiscalizationService;
 use App\Services\Sales\SaleService;
 use Illuminate\Http\Request;
 
 class SaleController extends Controller
 {
-    public function __construct(private SaleService $saleService) {}
+    public function __construct(private SaleService $saleService, private FiscalizationService $fiscalizationService) {}
 
     public function index(Request $request)
     {
@@ -33,6 +34,7 @@ class SaleController extends Controller
     public function store(StoreSaleRequest $request)
     {
         $sale = $this->saleService->createSale($request->validated(), $request->user());
+        $sale = $this->fiscalizationService->fiscalize($sale);
 
         return (new SaleResource($sale->load('items', 'payments.paymentMethod', 'cashier')))
             ->response()
@@ -55,8 +57,20 @@ class SaleController extends Controller
             $request->user(),
             (int) $request->validated('redeem_points', 0),
         );
+        $completed = $this->fiscalizationService->fiscalize($completed);
 
         return new SaleResource($completed);
+    }
+
+    public function fiscalize(Request $request, Sale $sale)
+    {
+        $canViewAll = $request->user()->can('sales.view.all');
+        abort_unless($canViewAll || ($request->user()->can('sales.view.own') && $sale->cashier_id === $request->user()->id), 403);
+        abort_unless($sale->status === 'completed', 422, 'Only completed sales can be fiscalized.');
+
+        return new SaleResource(
+            $this->fiscalizationService->fiscalize($sale)->load('items', 'payments.paymentMethod', 'cashier')
+        );
     }
 
     public function held(Request $request)

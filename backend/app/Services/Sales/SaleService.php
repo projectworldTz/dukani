@@ -4,6 +4,7 @@ namespace App\Services\Sales;
 
 use App\Models\Customer;
 use App\Models\LoyaltyTransaction;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\RoleLimit;
 use App\Models\Sale;
@@ -122,7 +123,9 @@ class SaleService
         }
 
         $amountPaid = 0;
+        $cashPaid = 0;
         foreach ($payments as $payment) {
+            $paymentMethod = PaymentMethod::findOrFail($payment['payment_method_id']);
             $sale->payments()->create([
                 'business_id' => BusinessContext::id(),
                 'payment_method_id' => $payment['payment_method_id'],
@@ -131,12 +134,22 @@ class SaleService
                 'received_by' => $cashier->id,
             ]);
             $amountPaid += $payment['amount'];
+            if ($paymentMethod->type === 'cash') {
+                $cashPaid += $payment['amount'];
+            }
         }
 
         $shortfall = round($grandTotal - $amountPaid, 2);
 
         if ($shortfall > 0) {
             $this->assertCreditAllowed($sale, $customer, $shortfall, $cashier);
+        }
+
+        $overpayment = round($amountPaid - $grandTotal, 2);
+        if ($overpayment > 0 && $cashPaid < $overpayment) {
+            throw ValidationException::withMessages([
+                'payments' => 'Card and mobile payments cannot exceed the amount due. Adjust the payment amounts.',
+            ]);
         }
 
         $change = max(0, $amountPaid - $grandTotal);
@@ -249,6 +262,12 @@ class SaleService
             $unitPrice = (float) ($line['unit_price'] ?? $product->selling_price);
             $discountAmount = (float) ($line['discount_amount'] ?? 0);
             $lineGross = $unitPrice * $quantity;
+
+            if ($discountAmount > $lineGross) {
+                throw ValidationException::withMessages([
+                    'items' => "Discount for {$product->name} cannot exceed its line total.",
+                ]);
+            }
 
             if ($discountAmount > 0) {
                 if (! $cashier->can('sales.discount.apply')) {
