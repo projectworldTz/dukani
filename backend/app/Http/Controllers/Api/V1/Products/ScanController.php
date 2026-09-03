@@ -21,10 +21,14 @@ class ScanController extends Controller
     public function __invoke(Request $request)
     {
         $request->validate([
-            'code' => ['required', 'string'],
+            'code' => ['required', 'string', 'max:512'],
             'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('business_id', BusinessContext::id())],
         ]);
-        $code = $request->string('code')->toString();
+        $code = $this->normalizeCode($request->string('code')->toString());
+
+        if ($code === '') {
+            return response()->json(['message' => 'The scanned code is empty or invalid.'], 422);
+        }
 
         if (str_starts_with($code, 'dukani:product:')) {
             $uuid = substr($code, strlen('dukani:product:'));
@@ -45,5 +49,20 @@ class ScanController extends Controller
         }
 
         return new ProductResource($product->load(['category', 'brand', 'unit', 'barcodes']));
+    }
+
+    private function normalizeCode(string $value): string
+    {
+        // Hardware scanners may send whitespace/control characters and an AIM
+        // symbology identifier such as ]C1 before the barcode.
+        $code = trim((string) preg_replace('/[\x00-\x1F\x7F]/u', '', $value));
+        $code = trim(preg_replace('/^\][A-Za-z][0-9]/', '', $code) ?? $code);
+
+        // QR labels may be scanned as a Dukani URL instead of the compact payload.
+        if (preg_match('~/(?:products|product)/([0-9a-f-]{36})(?:[/?#]|$)~i', $code, $matches)) {
+            return 'dukani:product:'.strtolower($matches[1]);
+        }
+
+        return $code;
     }
 }

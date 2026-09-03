@@ -54,6 +54,8 @@ function CheckoutScreen({ branchId, shiftId }: { branchId: number; shiftId: numb
   const [resumingSale, setResumingSale] = useState<Sale | null>(null)
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID())
   const inputRef = useRef<HTMLInputElement>(null)
+  const scannerBuffer = useRef('')
+  const scannerLastKeyAt = useRef(0)
   const deferredCustomerSearch = useDeferredValue(customerSearch)
   const deferredProductSearch = useDeferredValue(query)
 
@@ -173,6 +175,34 @@ function CheckoutScreen({ branchId, shiftId }: { branchId: number; shiftId: numb
     return () => window.removeEventListener('keydown', handleShortcut)
   }, [cart.length, holdMutation, paymentOpen, resumingSale, saleMutation.isPending])
 
+  useEffect(() => {
+    function captureScanner(event: KeyboardEvent) {
+      if (paymentOpen || completedSale || resumingSale || scanMutation.isPending || event.ctrlKey || event.altKey || event.metaKey) return
+
+      const target = event.target as HTMLElement | null
+      if (target?.matches('input, textarea, [contenteditable="true"]')) return
+
+      const now = performance.now()
+      if (now - scannerLastKeyAt.current > 120) scannerBuffer.current = ''
+      scannerLastKeyAt.current = now
+
+      if (event.key === 'Enter') {
+        const code = scannerBuffer.current.trim()
+        scannerBuffer.current = ''
+        if (code.length >= 3) {
+          event.preventDefault()
+          scanMutation.mutate(code)
+        }
+        return
+      }
+
+      if (event.key.length === 1) scannerBuffer.current += event.key
+    }
+
+    window.addEventListener('keydown', captureScanner)
+    return () => window.removeEventListener('keydown', captureScanner)
+  }, [completedSale, paymentOpen, resumingSale, scanMutation])
+
   function addToCart(product: Product) {
     setCart((prev) => {
       const existing = prev.find((l) => l.product.id === product.id)
@@ -211,7 +241,7 @@ function CheckoutScreen({ branchId, shiftId }: { branchId: number; shiftId: numb
   }
 
   function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter' && query.trim()) {
+    if (e.key === 'Enter' && query.trim() && !scanMutation.isPending) {
       e.preventDefault()
       scanMutation.mutate(query.trim())
     }
@@ -291,7 +321,7 @@ function CheckoutScreen({ branchId, shiftId }: { branchId: number; shiftId: numb
           onKeyDown={handleInputKeyDown}
           slotProps={{ input: { startAdornment: <QrCodeScanner sx={{ mr: 1, color: 'text.secondary' }} /> } }}
           sx={{ mb: 2 }}
-          helperText="F2 focuses search · scan a barcode and press Enter"
+          helperText={scanMutation.isPending ? 'Checking barcode…' : 'Scanner ready · F2 focuses search · Enter submits'}
         />
         {scanError && (
           <Alert severity="warning" onClose={() => setScanError(null)} sx={{ mb: 1 }}>

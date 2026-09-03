@@ -146,6 +146,31 @@ class PosFoundationFlowTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_scanner_accepts_hardware_prefixes_and_returns_branch_stock(): void
+    {
+        [$ownerToken] = $this->registerBusiness();
+        $branch = Branch::firstOrFail();
+
+        $product = $this->withToken($ownerToken)->postJson('/api/v1/products', [
+            'name' => 'Scanned Soap', 'cost_price' => 500, 'selling_price' => 800,
+        ])->assertCreated()->json();
+
+        $this->withToken($ownerToken)->postJson("/api/v1/products/{$product['id']}/barcodes/assign", [
+            'code' => '6009123456789', 'type' => 'EAN13', 'primary' => true,
+        ])->assertCreated();
+
+        $this->withToken($ownerToken)->postJson("/api/v1/products/{$product['id']}/stock/adjust", [
+            'branch_id' => $branch->id, 'quantity_change' => 7, 'type' => 'opening_stock',
+        ])->assertCreated();
+
+        $this->withToken($ownerToken)->postJson('/api/v1/pos/scan', [
+            'code' => "]C1 6009123456789\r\n",
+            'branch_id' => $branch->id,
+        ])->assertOk()
+            ->assertJsonPath('id', $product['id'])
+            ->assertJsonPath('available_stock', 7);
+    }
+
     public function test_full_sale_decrements_stock_and_issues_unique_receipt(): void
     {
         [$ownerToken] = $this->registerBusiness();
