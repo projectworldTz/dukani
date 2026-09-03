@@ -41,6 +41,6 @@ class ShiftController extends Controller
         return CashierShift::with('user:id,name', 'branch:id,name')
             ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', $request->integer('branch_id')))
             ->orderByDesc('opened_at')
-            ->paginate($request->integer('per_page', 20));
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
     }
 }

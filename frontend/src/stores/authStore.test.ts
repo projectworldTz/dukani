@@ -19,6 +19,7 @@ const baseUser: AuthUser = {
 
 describe('authStore', () => {
   beforeEach(() => {
+    sessionStorage.clear()
     useAuthStore.getState().clear()
   })
 
@@ -32,6 +33,8 @@ describe('authStore', () => {
 
     expect(useAuthStore.getState().token).toBe('token-123')
     expect(useAuthStore.getState().user?.email).toBe('nia@example.com')
+    expect(localStorage.getItem('dukani-auth')).toBeNull()
+    expect(sessionStorage.getItem('dukani-auth')).toContain('token-123')
   })
 
   it('clear wipes both token and user', () => {

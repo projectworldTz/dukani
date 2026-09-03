@@ -21,7 +21,7 @@ class StaffController extends Controller
         $staff = User::with('staffProfile')
             ->whereHas('staffProfile')
             ->orderBy('name')
-            ->paginate($request->integer('per_page', 20));
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
 
         return StaffResource::collection($staff);
     }

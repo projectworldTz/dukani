@@ -192,6 +192,9 @@ class AuthController extends Controller
 
         $user->forceFill(['password' => $data['password']])->save();
         Password::broker()->deleteToken($user);
+        // A password reset is an account-recovery boundary. Any bearer token that
+        // may have been copied before the reset must stop working immediately.
+        $user->tokens()->delete();
 
         return response()->json(['message' => __('Your password has been reset. You can now sign in.')]);
     }

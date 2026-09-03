@@ -29,7 +29,7 @@ class ProductController extends Controller
             ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->integer('category_id')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->orderBy('name')
-            ->paginate($request->integer('per_page', 20));
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
 
         return ProductResource::collection($products);
     }
@@ -75,10 +75,10 @@ class ProductController extends Controller
 
             Product::with('category:id,name', 'brand:id,name', 'unit:id,name')->chunk(200, function ($products) use ($handle) {
                 foreach ($products as $product) {
-                    fputcsv($handle, [
+                    fputcsv($handle, array_map([$this, 'escapeSpreadsheetCell'], [
                         $product->name, $product->sku, $product->category?->name, $product->brand?->name, $product->unit?->name,
                         $product->cost_price, $product->selling_price, $product->tax_rate, $product->reorder_level, $product->status,
-                    ]);
+                    ]));
                 }
             });
 
@@ -95,10 +95,14 @@ class ProductController extends Controller
     public function import(Request $request)
     {
         abort_unless($request->user()->can('products.manage'), 403);
-        $request->validate(['file' => ['required', 'file', 'mimes:csv,txt']]);
+        $request->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:5120']]);
 
         $handle = fopen($request->file('file')->getRealPath(), 'r');
         $header = fgetcsv($handle);
+        $allowedHeaders = ['name', 'sku', 'category', 'brand', 'unit', 'cost_price', 'selling_price', 'tax_rate', 'reorder_level', 'status'];
+        abort_unless(is_array($header) && $header !== [] && count($header) === count(array_unique($header)), 422, 'CSV header is missing or contains duplicate columns.');
+        abort_if(array_diff($header, $allowedHeaders), 422, 'CSV contains unsupported columns.');
+        abort_unless(collect(['name', 'cost_price', 'selling_price'])->every(fn ($column) => in_array($column, $header, true)), 422, 'CSV must contain name, cost_price and selling_price columns.');
         $created = 0;
         $errors = [];
         $row = 1;
@@ -107,8 +111,15 @@ class ProductController extends Controller
             while (($line = fgetcsv($handle)) !== false) {
                 $row++;
 
+                if ($row > 10001) {
+                    $errors[] = 'Import stopped: CSV files are limited to 10,000 data rows.';
+                    break;
+                }
+
                 if (count($line) !== count($header)) {
-                    $errors[] = "Row {$row}: expected ".count($header).' columns, got '.count($line).'.';
+                    if (count($errors) < 100) {
+                        $errors[] = "Row {$row}: expected ".count($header).' columns, got '.count($line).'.';
+                    }
 
                     continue;
                 }
@@ -116,13 +127,17 @@ class ProductController extends Controller
                 $data = array_combine($header, $line);
 
                 if (empty($data['name']) || ! is_numeric($data['cost_price'] ?? null) || ! is_numeric($data['selling_price'] ?? null)) {
-                    $errors[] = "Row {$row}: name, cost_price and selling_price are required.";
+                    if (count($errors) < 100) {
+                        $errors[] = "Row {$row}: name, cost_price and selling_price are required.";
+                    }
 
                     continue;
                 }
 
                 if (! empty($data['sku']) && Product::where('sku', $data['sku'])->exists()) {
-                    $errors[] = "Row {$row}: SKU \"{$data['sku']}\" already exists.";
+                    if (count($errors) < 100) {
+                        $errors[] = "Row {$row}: SKU \"{$data['sku']}\" already exists.";
+                    }
 
                     continue;
                 }
@@ -145,5 +160,14 @@ class ProductController extends Controller
         fclose($handle);
 
         return ['created' => $created, 'errors' => $errors];
+    }
+
+    private function escapeSpreadsheetCell(mixed $value): mixed
+    {
+        if (is_string($value) && preg_match('/^[\s]*[=+\-@]/u', $value)) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 }

@@ -22,7 +22,7 @@ class StockTransferController extends Controller
                 ->where('from_branch_id', $request->integer('branch_id'))
                 ->orWhere('to_branch_id', $request->integer('branch_id'))))
             ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 20));
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
     }
 
     public function store(StoreStockTransferRequest $request)

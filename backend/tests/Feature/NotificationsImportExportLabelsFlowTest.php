@@ -72,6 +72,14 @@ class NotificationsImportExportLabelsFlowTest extends TestCase
 
         $export = $api()->get('/api/v1/products/export')->assertOk();
         $this->assertStringContainsString('Sugar 1kg', $export->streamedContent());
+
+        $api()->postJson('/api/v1/products', [
+            'name' => '=HYPERLINK("https://example.invalid")',
+            'cost_price' => 1,
+            'selling_price' => 2,
+        ])->assertCreated();
+        $safeExport = $api()->get('/api/v1/products/export')->assertOk()->streamedContent();
+        $this->assertStringContainsString("'=HYPERLINK", $safeExport);
     }
 
     public function test_label_sheet_pdf_renders_for_selected_products(): void

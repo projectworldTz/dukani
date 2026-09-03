@@ -14,7 +14,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_DATABASE:-dukani}
       POSTGRES_USER: ${DB_USERNAME:-dukani}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-dukani}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
     volumes:
       - dukani_postgres_data:/var/lib/postgresql/data
     healthcheck:

@@ -25,7 +25,7 @@ class SaleController extends Controller
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('receipt_number'), fn ($q) => $q->where('receipt_number', 'like', '%'.$request->string('receipt_number').'%'))
             ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 20));
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
 
         return SaleResource::collection($sales);
     }

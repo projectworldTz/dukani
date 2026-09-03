@@ -27,12 +27,12 @@ class RolePermissionSeederService
         'branches.view.all', 'products.manage', 'inventory.view',
         'sales.view.all', 'sales.discount.apply', 'sales.credit.apply', 'sales.return', 'receipts.reprint',
         'shifts.view.all', 'purchases.manage', 'stock_transfers.approve', 'stock_takes.approve',
-        'customers.manage', 'quotations.manage', 'expenses.manage',
+        'customers.view', 'customers.manage', 'quotations.manage', 'expenses.manage',
     ];
 
     private const DEFAULT_CASHIER_PERMISSIONS = [
         'sales.create', 'sales.view.own', 'sales.credit.apply', 'receipts.reprint',
-        'shifts.open', 'shifts.close', 'customers.manage', 'quotations.manage',
+        'shifts.open', 'shifts.close', 'customers.view', 'customers.manage', 'quotations.manage',
     ];
 
     private const DEFAULT_STOREKEEPER_PERMISSIONS = [

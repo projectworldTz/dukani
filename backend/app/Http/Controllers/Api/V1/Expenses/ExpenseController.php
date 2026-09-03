@@ -7,7 +7,6 @@ use App\Models\Expense;
 use App\Support\Tenancy\BusinessContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class ExpenseController extends Controller
 {
@@ -21,7 +20,7 @@ class ExpenseController extends Controller
             ->when($request->filled('from'), fn ($q) => $q->whereDate('date', '>=', $request->date('from')))
             ->when($request->filled('to'), fn ($q) => $q->whereDate('date', '<=', $request->date('to')))
             ->orderByDesc('date')
-            ->paginate($request->integer('per_page', 20));
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
     }
 
     public function store(Request $request)

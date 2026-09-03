@@ -25,7 +25,7 @@ class InventoryController extends Controller
             ->when($request->boolean('low_stock'), fn ($q) => $q
                 ->join('products', 'products.id', '=', 'inventories.product_id')
                 ->whereRaw('inventories.quantity <= COALESCE(inventories.reorder_level, products.reorder_level)'))
-            ->paginate($request->integer('per_page', 20));
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
 
         return $inventories;
     }
@@ -51,6 +51,6 @@ class InventoryController extends Controller
         return StockMovement::where('product_id', $product->id)
             ->with('branch:id,name', 'user:id,name')
             ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 20));
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
     }
 }

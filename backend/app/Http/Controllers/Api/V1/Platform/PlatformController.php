@@ -43,7 +43,7 @@ class PlatformController extends Controller
                 ->when($request->boolean('trashed'), fn ($q) => $q->onlyTrashed(), fn ($q) => $q)
                 ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
                 ->orderByDesc('created_at')
-                ->paginate($request->integer('per_page', 20));
+                ->paginate(min(max($request->integer('per_page', 20), 1), 100));
         });
     }
 

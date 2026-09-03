@@ -83,6 +83,7 @@ class AccountLifecycleFlowTest extends TestCase
         Mail::fake();
         [, $owner] = $this->registerBusiness();
         $user = User::find($owner['id']);
+        $oldToken = $user->createToken('possibly-compromised')->plainTextToken;
 
         // Unknown email still returns a generic success message (no enumeration).
         $this->postJson('/api/v1/auth/forgot-password', ['email' => 'nobody@example.com'])->assertOk();
@@ -110,6 +111,9 @@ class AccountLifecycleFlowTest extends TestCase
 
         $this->postJson('/api/v1/auth/login', ['email' => $user->email, 'password' => 'newpassword123'])
             ->assertOk();
+
+        $this->app['auth']->forgetGuards();
+        $this->withToken($oldToken)->getJson('/api/v1/auth/me')->assertUnauthorized();
     }
 
     public function test_license_extension_stacks_onto_remaining_time_and_clears_the_alert_sentinel(): void

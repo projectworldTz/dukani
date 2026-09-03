@@ -21,6 +21,13 @@ interface AuthState {
   exitImpersonation: () => void
 }
 
+// Remove credentials written by releases that used persistent localStorage.
+// The current release keeps ordinary sessions tab-scoped and platform-admin
+// impersonation credentials in memory only.
+if (typeof window !== 'undefined') {
+  window.localStorage.removeItem('dukani-auth')
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -43,6 +50,19 @@ export const useAuthStore = create<AuthState>()(
         set({ token: adminSession.token, user: adminSession.user, adminSession: null })
       },
     }),
-    { name: 'dukani-auth' },
+    {
+      name: 'dukani-auth',
+      storage: {
+        getItem: (name) => {
+          const value = sessionStorage.getItem(name)
+          return value ? JSON.parse(value) : null
+        },
+        setItem: (name, value) => sessionStorage.setItem(name, JSON.stringify(value)),
+        removeItem: (name) => sessionStorage.removeItem(name),
+      },
+      // Never persist the stashed platform-administrator credential. It remains
+      // memory-only and disappears on refresh or when the tab is closed.
+      partialize: (state) => ({ ...state, adminSession: null }),
+    },
   ),
 )

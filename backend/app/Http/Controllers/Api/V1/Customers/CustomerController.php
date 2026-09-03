@@ -17,6 +17,8 @@ class CustomerController extends Controller
 
     public function index(Request $request)
     {
+        abort_unless($request->user()->can('customers.view') || $request->user()->can('customers.manage'), 403);
+
         return Customer::orderBy('name')
             ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%'.$request->string('search').'%')
                 ->orWhere('phone', 'like', '%'.$request->string('search').'%'))
@@ -31,8 +33,10 @@ class CustomerController extends Controller
         return response()->json($customer, 201);
     }
 
-    public function show(Customer $customer)
+    public function show(Request $request, Customer $customer)
     {
+        abort_unless($request->user()->can('customers.view') || $request->user()->can('customers.manage'), 403);
+
         return [
             ...$customer->toArray(),
             'outstanding_balance' => $customer->outstandingBalance(),

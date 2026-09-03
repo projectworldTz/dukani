@@ -23,6 +23,6 @@ class AuditLogController extends Controller
             ->when($request->filled('action'), fn ($q) => $q->where('action', 'like', $request->string('action').'%'))
             ->when($request->filled('user_id'), fn ($q) => $q->where('user_id', $request->integer('user_id')))
             ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 25));
+            ->paginate(min(max($request->integer('per_page', 25), 1), 100));
     }
 }

@@ -49,6 +49,7 @@ return [
     ],
 
     'customers' => [
+        'customers.view' => 'View customer details, balances, sales and loyalty history',
         'customers.manage' => 'Create and edit customers, record customer payments, adjust loyalty points',
     ],
 

@@ -22,7 +22,7 @@ class QuotationController extends Controller
         return Quotation::with('customer:id,name', 'branch:id,name')
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 20));
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
     }
 
     public function store(StoreQuotationRequest $request)
