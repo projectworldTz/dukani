@@ -4,8 +4,39 @@
 
 body {
   margin: 0;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 #root {
-  min-height: 100vh;
+  min-height: 100dvh;
+  min-width: 0;
+}
+
+img,
+svg,
+canvas {
+  max-width: 100%;
+}
+
+@media (max-width: 599.95px) {
+  .MuiDialog-root .MuiDialog-paper {
+    margin: 12px;
+    max-height: calc(100dvh - 24px);
+    width: calc(100% - 24px);
+  }
+
+  .MuiDialogTitle-root {
+    padding: 16px;
+  }
+
+  .MuiDialogContent-root,
+  .MuiDialogActions-root {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .MuiDialogActions-root {
+    flex-wrap: wrap;
+  }
 }

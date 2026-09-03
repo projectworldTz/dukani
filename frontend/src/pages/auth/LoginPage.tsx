@@ -43,11 +43,11 @@ export function LoginPage() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        p: 2,
+        p: { xs: 1, sm: 2 },
         background: 'radial-gradient(circle at 15% 15%, #DCFCE7 0%, #F0FDF4 35%, #ECFDF5 100%)',
       }}
     >
@@ -57,7 +57,7 @@ export function LoginPage() {
           display: 'flex',
           width: '100%',
           maxWidth: 920,
-          minHeight: 560,
+          minHeight: { xs: 'auto', md: 560 },
           borderRadius: 4,
           overflow: 'hidden',
           boxShadow: '0 30px 60px -20px rgba(6, 78, 59, 0.35)',
@@ -162,7 +162,7 @@ export function LoginPage() {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            p: { xs: 4, sm: 6 },
+            p: { xs: 2.5, sm: 6 },
             bgcolor: '#FFFFFF',
           }}
         >

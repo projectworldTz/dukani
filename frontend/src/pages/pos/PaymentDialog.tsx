@@ -56,12 +56,12 @@ export function PaymentDialog({ open, grandTotal, currency, paymentMethods, subm
       <DialogTitle sx={{ pb: 1 }}>Take payment</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary">Amount due</Typography>
-        <Typography variant="h3" sx={{ fontWeight: 850, mb: 2 }}>{currency} {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+        <Typography variant="h3" sx={{ fontWeight: 850, mb: 2, fontSize: { xs: '2rem', sm: '3rem' }, overflowWrap: 'anywhere' }}>{currency} {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
 
         <Typography variant="subtitle2" sx={{ mb: 1 }}>How is the customer paying?</Typography>
         <Stack direction="row" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
           {paymentMethods.map((method) => (
-            <Button key={method.id} variant={!splitPayment && lines[0]?.payment_method_id === method.id ? 'contained' : 'outlined'} onClick={() => chooseMethod(method.id)} sx={{ minWidth: 110 }}>
+            <Button key={method.id} variant={!splitPayment && lines[0]?.payment_method_id === method.id ? 'contained' : 'outlined'} onClick={() => chooseMethod(method.id)} sx={{ minWidth: { xs: 'calc(50% - 8px)', sm: 110 }, flexGrow: { xs: 1, sm: 0 } }}>
               {method.name}
             </Button>
           ))}
@@ -72,14 +72,14 @@ export function PaymentDialog({ open, grandTotal, currency, paymentMethods, subm
             const method = paymentMethods.find((item) => item.id === line.payment_method_id)
             return (
               <Stack key={index} spacing={1}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { xs: 'stretch', sm: 'center' }, position: 'relative' }}>
                   {splitPayment && (
-                    <TextField select label="Method" size="small" value={line.payment_method_id} onChange={(event) => updateLine(index, { payment_method_id: Number(event.target.value), reference: '' })} sx={{ minWidth: 145 }}>
+                    <TextField select label="Method" size="small" value={line.payment_method_id} onChange={(event) => updateLine(index, { payment_method_id: Number(event.target.value), reference: '' })} sx={{ minWidth: { sm: 145 } }}>
                       {paymentMethods.map((item) => <MenuItem key={item.id} value={item.id}>{item.name}</MenuItem>)}
                     </TextField>
                   )}
                   <TextField label={method?.type === 'cash' ? 'Cash received' : 'Amount'} type="number" size="small" autoFocus={index === 0} fullWidth value={line.amount || ''} onChange={(event) => updateLine(index, { amount: Math.max(0, Number(event.target.value)) })} slotProps={{ htmlInput: { min: 0, step: '0.01' } }} />
-                  {lines.length > 1 && <IconButton aria-label="Remove payment" onClick={() => setLines((previous) => previous.filter((_, i) => i !== index))}><Delete /></IconButton>}
+                  {lines.length > 1 && <IconButton aria-label="Remove payment" onClick={() => setLines((previous) => previous.filter((_, i) => i !== index))} sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}><Delete /></IconButton>}
                 </Stack>
                 {method && method.type !== 'cash' && (
                   <TextField label={`${method.name} transaction/reference (optional)`} size="small" value={line.reference ?? ''} onChange={(event) => updateLine(index, { reference: event.target.value })} />
@@ -108,7 +108,7 @@ export function PaymentDialog({ open, grandTotal, currency, paymentMethods, subm
           {hasNonCashOverpayment && <Alert severity="warning">Card and mobile payments cannot exceed the amount due.</Alert>}
         </Box>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: 2, '& > button': { flex: { xs: '1 1 100%', sm: '0 0 auto' } } }}>
         <Button onClick={onClose} disabled={submitting}>Back to cart</Button>
         <Button variant="contained" size="large" disabled={!canComplete || submitting} onClick={() => onConfirm(lines.filter((line) => line.amount > 0))} loading={submitting}>Complete sale</Button>
       </DialogActions>

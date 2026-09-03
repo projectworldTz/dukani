@@ -68,7 +68,7 @@ export function ReceiptDialog({ sale, onClose, onFiscalized }: Props) {
           <Alert severity="info" sx={{ mb: 2 }}>TRA fiscal receipt {sale.fiscal_receipt_number} · verification {sale.fiscal_verification_code}</Alert>
         )}
         <Typography variant="body2" color="text.secondary">Change due</Typography>
-        <Typography variant="h3" sx={{ fontWeight: 850, mb: 2 }}>{sale.currency} {Number(sale.change_amount).toLocaleString()}</Typography>
+        <Typography variant="h3" sx={{ fontWeight: 850, mb: 2, fontSize: { xs: '2rem', sm: '3rem' }, overflowWrap: 'anywhere' }}>{sale.currency} {Number(sale.change_amount).toLocaleString()}</Typography>
 
         <Button endIcon={<ExpandMore />} size="small" onClick={() => setShowOptions((shown) => !shown)}>
           {showOptions ? 'Hide receipt options' : 'More receipt options'}
@@ -78,19 +78,19 @@ export function ReceiptDialog({ sale, onClose, onFiscalized }: Props) {
             <TextField select label="Paper size" size="small" value={paper} onChange={(e) => {
               setLoading(true)
               setPaper(e.target.value as '58mm' | '80mm' | 'a4')
-            }} sx={{ width: 180 }}>
+            }} sx={{ width: { xs: '100%', sm: 180 } }}>
               <MenuItem value="58mm">58mm thermal</MenuItem>
               <MenuItem value="80mm">80mm thermal</MenuItem>
               <MenuItem value="a4">A4</MenuItem>
             </TextField>
-            <Stack direction="row" spacing={1}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <TextField label="Customer email" size="small" type="email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
               <Button variant="outlined" startIcon={<Email />} disabled={!email} loading={emailMutation.isPending} onClick={() => emailMutation.mutate()}>Email</Button>
             </Stack>
           </Stack>
         )}
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: 2, '& > button': { flex: { xs: '1 1 100%', sm: '0 0 auto' } } }}>
         <Button onClick={onClose}>No receipt · New sale</Button>
         <Button
           variant="contained"

@@ -349,7 +349,7 @@ function CheckoutScreen({ branchId, shiftId }: { branchId: number; shiftId: numb
         <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
           <Grid container spacing={1.5}>
             {(searchQuery.data?.data ?? []).map((product) => (
-              <Grid size={4} key={product.id}>
+              <Grid size={{ xs: 6, sm: 4 }} key={product.id}>
                 <Card variant="outlined">
                   <CardActionArea disabled={!!resumingSale || (product.available_stock ?? 0) <= 0} onClick={() => addToCart(product)} sx={{ p: 1.5 }}>
                     <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
@@ -393,7 +393,7 @@ function CheckoutScreen({ branchId, shiftId }: { branchId: number; shiftId: numb
             )}
           </Stack>
           <Stack spacing={1} sx={{ mb: 1.5 }}>
-            <Stack direction="row" spacing={1}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <Autocomplete
                 size="small"
                 fullWidth
@@ -419,13 +419,13 @@ function CheckoutScreen({ branchId, shiftId }: { branchId: number; shiftId: numb
                 renderInput={(params) => <TextField {...params} label="Customer (optional)" placeholder="Walk-in customer" />}
               />
               {!customerId && (
-                <Button disabled={!!resumingSale} startIcon={<PersonAdd />} variant="outlined" onClick={() => setShowWalkInDetails((shown) => !shown)} sx={{ whiteSpace: 'nowrap' }}>
+                <Button disabled={!!resumingSale} startIcon={<PersonAdd />} variant="outlined" onClick={() => setShowWalkInDetails((shown) => !shown)} sx={{ whiteSpace: 'nowrap', alignSelf: { xs: 'stretch', sm: 'center' } }}>
                   Add details
                 </Button>
               )}
             </Stack>
             {!customerId && showWalkInDetails && (
-              <Stack direction="row" spacing={1}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <TextField size="small" label="Customer name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} fullWidth />
                 <TextField size="small" label="Phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} fullWidth />
               </Stack>
@@ -439,7 +439,7 @@ function CheckoutScreen({ branchId, shiftId }: { branchId: number; shiftId: numb
               value={redeemPoints || ''}
               onChange={(e) => setRedeemPoints(Math.min(Number(e.target.value) || 0, selectedCustomer.loyalty_points))}
               helperText={loyaltyPointValue > 0 && redeemPoints > 0 ? `Saves ${currency} ${loyaltyDiscount.toLocaleString()}` : 'Enter points to use on this sale'}
-              sx={{ mb: 1.5, width: 220 }}
+              sx={{ mb: 1.5, width: { xs: '100%', sm: 220 } }}
             />
           )}
 
@@ -447,7 +447,7 @@ function CheckoutScreen({ branchId, shiftId }: { branchId: number; shiftId: numb
             {cart.map((line) => (
               <Box key={line.product.id} sx={{ py: 1, borderBottom: '1px solid #f0f0f0' }}>
                 <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="body2" noWrap sx={{ fontWeight: 600, maxWidth: 160 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 0, overflowWrap: 'anywhere' }}>
                     {line.product.name}
                   </Typography>
                   <IconButton size="small" disabled={!!resumingSale} onClick={() => updateQuantity(line.product.id, 0)}>
@@ -523,7 +523,7 @@ function CheckoutScreen({ branchId, shiftId }: { branchId: number; shiftId: numb
               </Typography>
             </Stack>
 
-            <Stack direction="row" spacing={1.5} sx={{ mt: 2 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 2 }}>
               <Button
                 variant="outlined"
                 fullWidth

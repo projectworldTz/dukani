@@ -34,7 +34,7 @@ export function OpenShiftGate({ children }: { children: (branchId: number, shift
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-      <Paper variant="outlined" sx={{ p: 4, width: 380 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 4 }, width: '100%', maxWidth: 380 }}>
         <Typography variant="h6" sx={{ fontWeight: 700 }} gutterBottom>
           Open your shift
         </Typography>

@@ -33,5 +33,15 @@ export const theme = createTheme({
         root: { boxShadow: '0 1px 2px rgba(16,24,40,0.06), 0 1px 3px rgba(16,24,40,0.1)' },
       },
     },
+    MuiTableContainer: {
+      styleOverrides: {
+        root: { maxWidth: '100%', overflowX: 'auto' },
+      },
+    },
+    MuiDialogActions: {
+      styleOverrides: {
+        root: { gap: 8 },
+      },
+    },
   },
 })

@@ -241,7 +241,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', minHeight: '100dvh', width: '100%', overflowX: 'hidden' }}>
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -273,8 +273,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
           elevation={0}
           sx={{ borderBottom: '1px solid #e5e7eb', bgcolor: 'background.paper' }}
         >
-          <Toolbar sx={{ justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Toolbar sx={{ justifyContent: 'space-between', gap: 1, px: { xs: 1, sm: 2, md: 3 }, minHeight: { xs: 56, sm: 64 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
               <IconButton
                 onClick={() => setMobileOpen(true)}
                 sx={{ display: { xs: 'inline-flex', md: 'none' } }}
@@ -282,14 +282,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
               >
                 <MenuIcon />
               </IconButton>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              <Typography variant="subtitle1" noWrap sx={{ fontWeight: 600, minWidth: 0 }}>
                 {isPlatformAdmin ? 'Platform Administration' : user?.business?.name}
               </Typography>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              {user?.roles.map((role) => (
-                <Chip key={role} label={role} size="small" variant="outlined" />
-              ))}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.25, sm: 1.5 }, flexShrink: 0 }}>
+              <Box sx={{ display: { xs: 'none', lg: 'flex' }, gap: 0.75 }}>
+                {user?.roles.map((role) => (
+                  <Chip key={role} label={role} size="small" variant="outlined" />
+                ))}
+              </Box>
               {(() => {
                 const activeQuery = isPlatformAdmin ? platformNotificationsQuery : notificationsQuery
                 const markRead = isPlatformAdmin ? platformApi.notifications.markRead : notificationsApi.markRead
@@ -301,7 +303,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                         <Notifications fontSize="small" />
                       </Badge>
                     </IconButton>
-                    <Menu anchorEl={notifAnchorEl} open={!!notifAnchorEl} onClose={() => setNotifAnchorEl(null)} slotProps={{ paper: { sx: { width: 340 } } }}>
+                    <Menu anchorEl={notifAnchorEl} open={!!notifAnchorEl} onClose={() => setNotifAnchorEl(null)} slotProps={{ paper: { sx: { width: { xs: 'calc(100vw - 24px)', sm: 340 }, maxWidth: 340 } } }}>
                       {(activeQuery.data?.length ?? 0) === 0 && (
                         <MenuItem disabled sx={{ opacity: '1 !important' }}>
                           <Typography variant="body2" color="text.secondary">
@@ -396,7 +398,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             Please verify your email address ({user.email}) to secure your account.
           </Alert>
         )}
-        <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+        <Box component="main" sx={{ flexGrow: 1, minWidth: 0, width: '100%', p: { xs: 1.25, sm: 2, md: 3 }, overflowX: 'hidden' }}>
           {children}
         </Box>
       </Box>
