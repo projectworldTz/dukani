@@ -120,7 +120,7 @@ export function DashboardPage() {
             exclusive
             size="small"
             onChange={(_, value: ReportPeriod | null) => value && setPeriod(value)}
-            sx={{ bgcolor: 'background.paper' }}
+            sx={{ bgcolor: 'background.paper', width: { xs: '100%', sm: 'auto' }, flexWrap: 'wrap', '& .MuiToggleButton-root': { flex: { xs: '1 1 33%', sm: '0 0 auto' }, px: { xs: 1, sm: 1.5 } } }}
           >
             {PERIODS.map((p) => (
               <ToggleButton key={p.value} value={p.value} sx={{ textTransform: 'none', px: 2 }}>

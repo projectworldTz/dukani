@@ -117,7 +117,7 @@ export function RolesPage() {
                   }
                 }}
                 helperText="Leave blank for no cap. E.g. 10 = Manager can approve up to 10% off."
-                sx={{ width: 320 }}
+                sx={{ width: '100%', maxWidth: 320 }}
               />
             </Paper>
           )}

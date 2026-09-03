@@ -60,12 +60,12 @@ export function RegisterPage() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        p: 2,
-        py: 4,
+        p: { xs: 1, sm: 2 },
+        py: { xs: 1, sm: 4 },
         background: 'radial-gradient(circle at 15% 15%, #DCFCE7 0%, #F0FDF4 35%, #ECFDF5 100%)',
       }}
     >
@@ -179,9 +179,9 @@ export function RegisterPage() {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            p: { xs: 4, sm: 6 },
+            p: { xs: 2.5, sm: 6 },
             bgcolor: '#FFFFFF',
-            maxHeight: '100vh',
+            maxHeight: '100dvh',
             overflowY: 'auto',
           }}
         >

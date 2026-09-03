@@ -203,7 +203,7 @@ export function QuotationsPage() {
 
   return (
     <Box>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 800 }}>
           Quotations
         </Typography>
@@ -360,7 +360,7 @@ export function QuotationsPage() {
               />
             )}
 
-            <Stack direction="row" spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 label="Valid until"
                 type="date"
@@ -382,7 +382,7 @@ export function QuotationsPage() {
             </Stack>
 
             {form.lines.map((line, i) => (
-              <Stack direction="row" spacing={1} key={i} sx={{ alignItems: 'center' }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} key={i} sx={{ alignItems: { xs: 'stretch', sm: 'center' }, borderBottom: { xs: '1px solid', sm: 0 }, borderColor: 'divider', pb: { xs: 1.5, sm: 0 } }}>
                 <TextField
                   select
                   label="Product"
@@ -404,7 +404,7 @@ export function QuotationsPage() {
                   size="small"
                   value={line.quantity}
                   onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })}
-                  sx={{ width: 90 }}
+                  sx={{ width: { xs: '100%', sm: 90 } }}
                   disabled={editingLocked}
                 />
                 <TextField
@@ -413,7 +413,7 @@ export function QuotationsPage() {
                   size="small"
                   value={line.unit_price ?? ''}
                   onChange={(e) => updateLine(i, { unit_price: Number(e.target.value) })}
-                  sx={{ width: 120 }}
+                  sx={{ width: { xs: '100%', sm: 120 } }}
                   disabled={editingLocked}
                 />
                 <TextField
@@ -422,11 +422,11 @@ export function QuotationsPage() {
                   size="small"
                   value={line.discount_amount ?? ''}
                   onChange={(e) => updateLine(i, { discount_amount: Number(e.target.value) || undefined })}
-                  sx={{ width: 110 }}
+                  sx={{ width: { xs: '100%', sm: 110 } }}
                   disabled={editingLocked}
                 />
                 {!editingLocked && (
-                  <IconButton size="small" onClick={() => setForm((prev) => ({ ...prev, lines: prev.lines.filter((_, idx) => idx !== i) }))}>
+                  <IconButton size="small" onClick={() => setForm((prev) => ({ ...prev, lines: prev.lines.filter((_, idx) => idx !== i) }))} sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}>
                     <Delete fontSize="small" />
                   </IconButton>
                 )}

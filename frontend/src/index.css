@@ -19,6 +19,16 @@ canvas {
   max-width: 100%;
 }
 
+.MuiPaper-root:has(> .MuiTable-root),
+.MuiDialogContent-root:has(> .MuiTable-root) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.MuiTable-root {
+  min-width: 640px;
+}
+
 @media (max-width: 599.95px) {
   .MuiDialog-root .MuiDialog-paper {
     margin: 12px;
@@ -38,5 +48,18 @@ canvas {
 
   .MuiDialogActions-root {
     flex-wrap: wrap;
+  }
+
+  .MuiDialogActions-root > .MuiButton-root {
+    flex: 1 1 auto;
+  }
+
+  .MuiTable-root {
+    font-size: 0.8125rem;
+  }
+
+  .MuiTableCell-root {
+    padding: 10px 12px;
+    white-space: nowrap;
   }
 }

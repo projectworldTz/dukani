@@ -72,7 +72,7 @@ export function PurchasesPage() {
 
   return (
     <Box>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 800 }}>
           Purchases
         </Typography>
@@ -118,7 +118,7 @@ export function PurchasesPage() {
         <DialogTitle>New purchase</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <Stack direction="row" spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField select label="Branch" value={branchId} onChange={(e) => setBranchId(Number(e.target.value))} fullWidth>
                 {branchesQuery.data?.map((b) => (
                   <MenuItem key={b.id} value={b.id}>
@@ -140,7 +140,7 @@ export function PurchasesPage() {
               Line items
             </Typography>
             {lines.map((line, i) => (
-              <Stack direction="row" spacing={1} key={i} sx={{ alignItems: 'center' }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} key={i} sx={{ alignItems: { xs: 'stretch', sm: 'center' }, borderBottom: { xs: '1px solid', sm: 0 }, borderColor: 'divider', pb: { xs: 1.5, sm: 0 } }}>
                 <TextField
                   select
                   label="Product"
@@ -161,7 +161,7 @@ export function PurchasesPage() {
                   size="small"
                   value={line.quantity_ordered}
                   onChange={(e) => updateLine(i, { quantity_ordered: Number(e.target.value) })}
-                  sx={{ width: 90 }}
+                  sx={{ width: { xs: '100%', sm: 90 } }}
                 />
                 <TextField
                   label="Unit cost"
@@ -169,9 +169,9 @@ export function PurchasesPage() {
                   size="small"
                   value={line.unit_cost}
                   onChange={(e) => updateLine(i, { unit_cost: Number(e.target.value) })}
-                  sx={{ width: 120 }}
+                  sx={{ width: { xs: '100%', sm: 120 } }}
                 />
-                <IconButton size="small" onClick={() => setLines((prev) => prev.filter((_, idx) => idx !== i))}>
+                <IconButton size="small" onClick={() => setLines((prev) => prev.filter((_, idx) => idx !== i))} sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}>
                   <Delete fontSize="small" />
                 </IconButton>
               </Stack>

@@ -42,7 +42,7 @@ export function SuppliersPage() {
 
   return (
     <Box>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 800 }}>
           Suppliers
         </Typography>

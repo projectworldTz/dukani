@@ -117,11 +117,11 @@ export function ProductsPage() {
 
   return (
     <Box>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 800 }}>
           Products
         </Typography>
-        <Stack direction="row" spacing={1}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
           {selected.length > 0 && (
             <Button variant="outlined" startIcon={<QrCode2 />} onClick={() => setLabelsOpen(true)}>
               Print labels ({selected.length})
@@ -223,7 +223,7 @@ export function ProductsPage() {
                 </MenuItem>
               ))}
             </TextField>
-            <Stack direction="row" spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 label="Cost price"
                 type="number"

@@ -58,7 +58,7 @@ export function ExpensesPage() {
 
   return (
     <Box>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 800 }}>
           Expenses
         </Typography>
@@ -96,7 +96,7 @@ export function ExpensesPage() {
         <DialogTitle>Record expense</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <Stack direction="row" spacing={1}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <TextField select label="Category" value={categoryId} onChange={(e) => setCategoryId(Number(e.target.value))} fullWidth>
                 {categoriesQuery.data?.map((c) => (
                   <MenuItem key={c.id} value={c.id}>
@@ -105,7 +105,7 @@ export function ExpensesPage() {
                 ))}
               </TextField>
             </Stack>
-            <Stack direction="row" spacing={1}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <TextField
                 size="small"
                 label="New category"

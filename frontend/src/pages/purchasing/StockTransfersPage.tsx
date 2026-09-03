@@ -86,7 +86,7 @@ export function StockTransfersPage() {
 
   return (
     <Box>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 800 }}>
           Stock Transfers
         </Typography>
@@ -140,7 +140,7 @@ export function StockTransfersPage() {
         <DialogTitle>New stock transfer</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <Stack direction="row" spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField select label="From branch" value={fromBranch} onChange={(e) => setFromBranch(Number(e.target.value))} fullWidth>
                 {branchesQuery.data?.map((b) => (
                   <MenuItem key={b.id} value={b.id}>
@@ -158,7 +158,7 @@ export function StockTransfersPage() {
             </Stack>
 
             {lines.map((line, i) => (
-              <Stack direction="row" spacing={1} key={i} sx={{ alignItems: 'center' }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} key={i} sx={{ alignItems: { xs: 'stretch', sm: 'center' }, borderBottom: { xs: '1px solid', sm: 0 }, borderColor: 'divider', pb: { xs: 1.5, sm: 0 } }}>
                 <TextField
                   select
                   label="Product"
@@ -179,9 +179,9 @@ export function StockTransfersPage() {
                   size="small"
                   value={line.quantity}
                   onChange={(e) => setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, quantity: Number(e.target.value) } : l)))}
-                  sx={{ width: 100 }}
+                  sx={{ width: { xs: '100%', sm: 100 } }}
                 />
-                <IconButton size="small" onClick={() => setLines((prev) => prev.filter((_, idx) => idx !== i))}>
+                <IconButton size="small" onClick={() => setLines((prev) => prev.filter((_, idx) => idx !== i))} sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}>
                   <Delete fontSize="small" />
                 </IconButton>
               </Stack>
