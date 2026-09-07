@@ -199,6 +199,13 @@ class AuthController extends Controller
         return response()->json(['message' => __('Your password has been reset. You can now sign in.')]);
     }
 
+    /**
+     * Never lets a mail-transport failure bubble up: registration's business/owner/
+     * branch are already committed to the DB by the time this runs, so a broken
+     * mailer (e.g. missing BREVO_API_KEY) must not turn a successful signup into a
+     * 500 the user can't recover from — they'd retry and hit "email already taken"
+     * for an account they can't yet access. Failures are still reported/logged.
+     */
     private function sendVerificationEmail(User $user): void
     {
         if ($user->hasVerifiedEmail()) {
@@ -207,7 +214,12 @@ class AuthController extends Controller
 
         $token = Str::random(40);
         $user->update(['email_verification_token' => $token]);
-        Mail::to($user->email)->send(new VerifyEmailMail($user, $token));
+
+        try {
+            Mail::to($user->email)->send(new VerifyEmailMail($user, $token));
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function verifyEmail(Request $request)
