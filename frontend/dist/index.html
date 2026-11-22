@@ -5,14 +5,17 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-    <title>Dukani POS System Tanzania | Sales, Stock & Shop Management Software</title>
+    <title>Dukani POS System Tanzania | Shop, Pharmacy & Butchery Software</title>
 
     <meta
       name="description"
-      content="Dukani is a POS system in Tanzania for shops and businesses. Manage sales, stock, customers, expenses, profits and business reports from one simple platform."
+      content="POS system for Tanzania: sell, manage stock and see your profit. For shops, supermarkets, pharmacies, butcheries and restaurants. Works on phone or computer. 14-day free trial."
     />
 
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="keywords" content="POS system Tanzania, POS Tanzania, pharmacy software Tanzania, butchery POS, stock management software, mfumo wa POS, mfumo wa mauzo, programu ya duka, Dukani" />
+    <meta name="geo.region" content="TZ" />
+    <meta name="geo.placename" content="Dar es Salaam" />
 
     <link rel="canonical" href="https://dukani.projectworldtz.com/" />
 
@@ -24,8 +27,15 @@
     <meta property="og:url" content="https://dukani.projectworldtz.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Dukani" />
+    <meta property="og:locale" content="en_TZ" />
+    <meta property="og:locale:alternate" content="sw_TZ" />
+    <meta property="og:image" content="https://dukani.projectworldtz.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Dukani POS — sales, stock and profit in one app" />
 
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://dukani.projectworldtz.com/og-image.png" />
     <meta name="twitter:title" content="Dukani POS System Tanzania | Shop Management Software" />
     <meta
       name="twitter:description"
@@ -46,11 +56,77 @@
       <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="/assets/index-BiF1Qjh1.js"></script>
+
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dukani POS","applicationCategory":"BusinessApplication","applicationSubCategory":"Point of Sale","operatingSystem":"Web, Android, iOS, Windows","url":"https://dukani.projectworldtz.com/","image":"https://dukani.projectworldtz.com/og-image.png","description":"Point of sale and stock management software for shops, supermarkets, pharmacies, butcheries, restaurants and wholesalers in Tanzania. Works on a phone, tablet or computer — start with a 14-day free trial.","inLanguage":["en","sw"],"areaServed":{"@type":"Country","name":"Tanzania"},"offers":{"@type":"Offer","price":"0","priceCurrency":"TZS","description":"14-day free trial","url":"https://dukani.projectworldtz.com/register"},"publisher":{"@type":"Organization","name":"Project World Tanzania"}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Project World Tanzania","url":"https://projectworldtz.com","logo":"https://dukani.projectworldtz.com/pwa-512.png","areaServed":"TZ"}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is Dukani?","acceptedAnswer":{"@type":"Answer","text":"Dukani is an online POS (point of sale) and stock management system made for businesses in Tanzania. You use it to record sales, manage stock, track expenses and see your profit — from a phone, tablet or computer."}},{"@type":"Question","name":"Is there a free trial?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every new business gets a 14-day free trial with all features. No payment is needed to start."}},{"@type":"Question","name":"Does Dukani work for pharmacies and butcheries?","acceptedAnswer":{"@type":"Answer","text":"Yes. Pharmacies get batch and expiry tracking, prescriptions and a controlled drugs register. Butcheries can sell by weight in kilograms, run a daily price board and cut carcasses into stock."}},{"@type":"Question","name":"Can I use Dukani on my phone?","acceptedAnswer":{"@type":"Answer","text":"Yes. Dukani runs in the browser on any Android phone, iPhone, tablet or computer, and can be installed like an app."}},{"@type":"Question","name":"Dukani ni nini?","acceptedAnswer":{"@type":"Answer","text":"Dukani ni mfumo wa POS na usimamizi wa stoo kwa biashara za Tanzania. Unarekodi mauzo, unasimamia stoo, unafuatilia matumizi na kuona faida yako — kwa simu, tablet au kompyuta."}},{"@type":"Question","name":"Je, kuna kipindi cha majaribio bure?","acceptedAnswer":{"@type":"Answer","text":"Ndiyo. Kila biashara mpya inapata siku 14 za majaribio bure, bila malipo yoyote kuanza."}}]}</script>
+
+    <!-- The pre-rendered landing text (for search engines) is only shown on the home
+         page to signed-out visitors; everywhere else the app replaces it instantly. -->
+    <script>
+      (function () {
+        try {
+          var auth = JSON.parse(sessionStorage.getItem('dukani-auth') || 'null')
+          if (location.pathname !== '/' || (auth && auth.state && auth.state.token)) {
+            document.documentElement.className += ' app-route'
+          }
+        } catch (e) {}
+      })()
+    </script>
+    <style>
+      .app-route #seo-landing { display: none }
+      .seo-landing { font-family: Inter, system-ui, sans-serif; color: #0f172a; max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.6 }
+      .seo-landing header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px }
+      .seo-landing a { color: #2563eb }
+      .seo-landing .seo-brand { font-weight: 800; font-size: 20px; text-decoration: none }
+      .seo-landing .seo-eyebrow { color: #2563eb; font-weight: 700; margin: 0 }
+      .seo-landing h1 { font-size: 30px; line-height: 1.25; margin: 8px 0 16px }
+      .seo-landing h2 { font-size: 22px; margin-top: 40px }
+      .seo-landing h3 { font-size: 17px; margin: 20px 0 4px }
+      .seo-landing p { margin: 0 0 12px; color: #334155 }
+      .seo-landing .seo-cta { display: inline-block; background: #2563eb; color: #fff; padding: 12px 22px; border-radius: 10px; font-weight: 700; text-decoration: none }
+    </style>
+    <script type="module" crossorigin src="/assets/index-BxKNwj1I.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-CIVTbjoq.css">
   <link rel="manifest" href="/manifest.webmanifest"></head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+<main id="seo-landing" class="seo-landing">
+  <header><a href="/" class="seo-brand">Dukani</a> <a href="/login">Sign in</a></header>
+  <p class="seo-eyebrow">POS system for Tanzanian businesses</p>
+  <h1>Dukani POS — sell, manage stock and see your profit from one simple app</h1>
+  <p>Point of sale and stock management software for shops, supermarkets, pharmacies, butcheries, restaurants and wholesalers in Tanzania. Works on a phone, tablet or computer — start with a 14-day free trial.</p>
+  <p lang="sw">Mfumo wa POS wa kisasa kwa maduka, famasi, bucha na biashara zote Tanzania — mauzo, stoo, faida na ripoti mahali pamoja.</p>
+  <p><a href="/register" class="seo-cta">Start your 14-day free trial</a></p>
+  <section>
+    <h2>Everything you need to run your business</h2>
+    <h3>Fast checkout</h3><p>Scan barcodes, take cash, M-Pesa, Tigo Pesa, Airtel Money or card, split payments and print or share receipts.</p>
+    <h3>Stock management</h3><p>Know what is in stock, get low-stock alerts, add deliveries and see the value of your stock at any time.</p>
+    <h3>Profit &amp; reports</h3><p>Today's sales, profit, best sellers, expenses and sales history — clear reports you can understand at a glance.</p>
+    <h3>Staff &amp; shifts</h3><p>Give each cashier their own login, open and close shifts, and see who sold what — no more missing money.</p>
+    <h3>Customers &amp; credit</h3><p>Keep customer records, sell on credit with limits, track who owes you and reward loyal customers with points.</p>
+    <h3>Many branches</h3><p>Run one business across several shops and move stock between branches.</p>
+    <h3>EFD / TRA receipts</h3><p>Receipts with your TIN and VRN, ready for an EFD/VFD integration with a TRA-approved provider.</p>
+    <h3>Business calculator</h3><p>Built-in calculator for profit, markup, VAT, discounts, change and break-even.</p>
+  </section>
+  <section>
+    <h2>Built for your kind of business</h2>
+    <h3>Pharmacy POS system</h3><p>A dedicated pharmacy platform: medicines by batch and expiry date (FEFO), expired stock blocked from sale, prescriptions for prescription-only medicines, dosage labels on receipts and a controlled drugs register.</p>
+    <h3>Butchery POS system</h3><p>Sell meat by weight (kg) or by amount (&quot;nipe ya elfu tano&quot;), update prices per kg on a daily price board, cut a carcass into stock with the real cost per kg, and track waste.</p>
+    <h3>Shop &amp; supermarket POS</h3><p>Fast barcode checkout for minimarts, supermarkets, wholesale, hardware, electronics, boutiques, bookshops and more.</p>
+    <ul><li>Retail shops &amp; supermarkets</li><li>Pharmacies &amp; health shops</li><li>Butcheries &amp; fresh foods</li><li>Restaurants &amp; bars</li><li>Electronics &amp; phone shops</li><li>Fashion &amp; boutiques</li><li>Hardware &amp; construction</li><li>Salons &amp; spas</li><li>Bookshops &amp; stationery</li><li>Wholesalers &amp; distributors</li></ul>
+  </section>
+  <section>
+    <h2>Frequently asked questions</h2>
+    <h3>What is Dukani?</h3><p>Dukani is an online POS (point of sale) and stock management system made for businesses in Tanzania. You use it to record sales, manage stock, track expenses and see your profit — from a phone, tablet or computer.</p>
+    <h3>Is there a free trial?</h3><p>Yes. Every new business gets a 14-day free trial with all features. No payment is needed to start.</p>
+    <h3>Does Dukani work for pharmacies and butcheries?</h3><p>Yes. Pharmacies get batch and expiry tracking, prescriptions and a controlled drugs register. Butcheries can sell by weight in kilograms, run a daily price board and cut carcasses into stock.</p>
+    <h3>Can I use Dukani on my phone?</h3><p>Yes. Dukani runs in the browser on any Android phone, iPhone, tablet or computer, and can be installed like an app.</p>
+    <h3>Dukani ni nini?</h3><p>Dukani ni mfumo wa POS na usimamizi wa stoo kwa biashara za Tanzania. Unarekodi mauzo, unasimamia stoo, unafuatilia matumizi na kuona faida yako — kwa simu, tablet au kompyuta.</p>
+    <h3>Je, kuna kipindi cha majaribio bure?</h3><p>Ndiyo. Kila biashara mpya inapata siku 14 za majaribio bure, bila malipo yoyote kuanza.</p>
+  </section>
+  <footer><p>Dukani by Project World Tanzania · <a href="/register">Register</a> · <a href="/login">Sign in</a></p></footer>
+</main></div>
   </body>
 </html>

@@ -1,11 +1,33 @@
 /// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { landingStaticHtml, structuredData } from './src/content/landing.ts'
+
+/**
+ * SEO: bakes the landing page text and schema.org data into index.html, so search
+ * engines read real content without running JavaScript. React replaces the block as
+ * soon as it renders; on any other route (or when signed in) it is hidden at once.
+ */
+function seoLanding(): Plugin {
+  return {
+    name: 'dukani-seo-landing',
+    transformIndexHtml(html) {
+      const jsonLd = structuredData()
+        // "<" escaped so text inside the JSON can never close the script tag.
+        .map((d) => `<script type="application/ld+json">${JSON.stringify(d).replace(/</g, '\\u003c')}</script>`)
+        .join('\n    ')
+      return html
+        .replace('<!--seo:jsonld-->', jsonLd)
+        .replace('<div id="root"></div>', `<div id="root">${landingStaticHtml()}</div>`)
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    seoLanding(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',

@@ -1,0 +1,9 @@
+# Dukani — https://dukani.projectworldtz.com
+User-agent: *
+Allow: /
+# The API and signed-in app screens are not pages for search results.
+Disallow: /backend/
+Disallow: /pos
+Disallow: /platform
+
+Sitemap: https://dukani.projectworldtz.com/sitemap.xml
