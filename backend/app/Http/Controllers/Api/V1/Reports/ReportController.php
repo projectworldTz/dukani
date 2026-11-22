@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Reports;
 
+use App\Http\Controllers\Api\V1\Reports\Concerns\UsesBusinessTime;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Expense;
@@ -24,6 +25,8 @@ use Illuminate\Support\Facades\DB;
  */
 class ReportController extends Controller
 {
+    use UsesBusinessTime;
+
     private const PERIODS = ['today', 'week', 'month', 'year', 'all'];
 
     /**
@@ -33,12 +36,14 @@ class ReportController extends Controller
      */
     private function resolvePeriodRange(string $period): array
     {
+        $now = $this->localNow();
+
         return match ($period) {
-            'today' => [now()->startOfDay(), now()->endOfDay()],
-            'week' => [now()->startOfWeek(), now()->endOfDay()],
-            'year' => [now()->startOfYear(), now()->endOfDay()],
-            'all' => [null, now()->endOfDay()],
-            default => [now()->startOfMonth(), now()->endOfDay()],
+            'today' => [$now->copy()->startOfDay(), $now->copy()->endOfDay()],
+            'week' => [$now->copy()->startOfWeek(), $now->copy()->endOfDay()],
+            'year' => [$now->copy()->startOfYear(), $now->copy()->endOfDay()],
+            'all' => [null, $now->copy()->endOfDay()],
+            default => [$now->copy()->startOfMonth(), $now->copy()->endOfDay()],
         };
     }
 
@@ -48,13 +53,14 @@ class ReportController extends Controller
         abort_unless($request->user()->can('sales.view.all'), 403);
         $branchId = $request->integer('branch_id') ?: null;
 
-        $today = now()->startOfDay();
-        $yesterday = now()->subDay()->startOfDay();
+        $now = $this->localNow();
+        $today = $now->copy()->startOfDay();
+        $yesterday = $now->copy()->subDay()->startOfDay();
 
         $salesTotal = fn (Carbon $from, ?Carbon $to = null) => Sale::where('status', 'completed')
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->whereDate('completed_at', '>=', $from)
-            ->when($to, fn ($q) => $q->whereDate('completed_at', '<=', $to))
+            ->where('completed_at', '>=', $this->utcStart($from))
+            ->when($to, fn ($q) => $q->where('completed_at', '<=', $this->utcEnd($to)))
             ->sum('grand_total');
 
         $completedSales = Sale::where('status', 'completed')->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
@@ -75,8 +81,8 @@ class ReportController extends Controller
 
         $periodSales = fn () => Sale::where('status', 'completed')
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->when($periodFrom, fn ($q) => $q->whereDate('completed_at', '>=', $periodFrom))
-            ->whereDate('completed_at', '<=', $periodTo);
+            ->when($periodFrom, fn ($q) => $q->where('completed_at', '>=', $this->utcStart($periodFrom)))
+            ->where('completed_at', '<=', $this->utcEnd($periodTo));
 
         $periodPaymentBreakdown = $periodSales()
             ->join('payments', 'payments.sale_id', '=', 'sales.id')
@@ -89,22 +95,22 @@ class ReportController extends Controller
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->where('sales.status', 'completed')
             ->when($branchId, fn ($q) => $q->where('sales.branch_id', $branchId))
-            ->when($periodFrom, fn ($q) => $q->whereDate('sales.completed_at', '>=', $periodFrom))
-            ->whereDate('sales.completed_at', '<=', $periodTo)
-            ->selectRaw('COALESCE(SUM(sale_items.unit_price * sale_items.quantity - sale_items.discount_amount), 0) as revenue,
-                COALESCE(SUM((sale_items.unit_price * sale_items.quantity - sale_items.discount_amount) - (sale_items.cost_price * sale_items.quantity)), 0) as profit')
+            ->when($periodFrom, fn ($q) => $q->where('sales.completed_at', '>=', $this->utcStart($periodFrom)))
+            ->where('sales.completed_at', '<=', $this->utcEnd($periodTo))
+            ->selectRaw('COALESCE(SUM(sale_items.unit_price * sale_items.quantity / sale_items.price_divisor - sale_items.discount_amount), 0) as revenue,
+                COALESCE(SUM((sale_items.unit_price * sale_items.quantity / sale_items.price_divisor - sale_items.discount_amount) - (sale_items.cost_price * sale_items.quantity / sale_items.price_divisor)), 0) as profit')
             ->first();
 
         return [
             'todays_sales' => (float) $salesTotal($today),
-            'yesterdays_sales' => (float) $salesTotal($yesterday, $today->copy()->subSecond()),
-            'weekly_sales' => (float) $salesTotal(now()->startOfWeek()),
-            'monthly_sales' => (float) $salesTotal(now()->startOfMonth()),
-            'yearly_sales' => (float) $salesTotal(now()->startOfYear()),
+            'yesterdays_sales' => (float) $salesTotal($yesterday, $yesterday),
+            'weekly_sales' => (float) $salesTotal($now->copy()->startOfWeek()),
+            'monthly_sales' => (float) $salesTotal($now->copy()->startOfMonth()),
+            'yearly_sales' => (float) $salesTotal($now->copy()->startOfYear()),
             'transactions_count' => (clone $completedSales)->count(),
             'average_transaction_value' => round((float) (clone $completedSales)->avg('grand_total'), 2),
             'total_customers' => Customer::count(),
-            'new_customers_this_month' => Customer::where('created_at', '>=', now()->startOfMonth())->count(),
+            'new_customers_this_month' => Customer::where('created_at', '>=', $this->utcStart($now->copy()->startOfMonth()))->count(),
             'low_stock_count' => Inventory::query()
                 ->join('products', 'products.id', '=', 'inventories.product_id')
                 ->whereRaw('inventories.quantity <= COALESCE(inventories.reorder_level, products.reorder_level)')
@@ -113,7 +119,7 @@ class ReportController extends Controller
             'out_of_stock_count' => Inventory::where('quantity', '<=', 0)->count(),
             'inventory_value' => round((float) Inventory::query()
                 ->join('products', 'products.id', '=', 'inventories.product_id')
-                ->sum(DB::raw('inventories.quantity * products.cost_price')), 2),
+                ->sum(DB::raw('inventories.quantity * products.cost_price / (CASE WHEN products.sold_by_weight THEN 1000 ELSE 1 END)')), 2),
             'outstanding_customer_credit' => round((float) Customer::all()->sum(fn (Customer $c) => $c->outstandingBalance()), 2),
             'outstanding_supplier_payments' => round((float) Supplier::all()->sum(fn (Supplier $s) => $s->outstandingBalance()), 2),
             'cash_sales' => (float) ($paymentBreakdown['cash'] ?? 0),
@@ -123,7 +129,7 @@ class ReportController extends Controller
             'discounts_given' => round((float) (clone $completedSales)->sum('discount_total'), 2),
             'tax_collected' => round((float) (clone $completedSales)->sum('tax_total'), 2),
             'total_expenses_this_month' => round((float) Expense::when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->where('date', '>=', now()->startOfMonth())->sum('amount'), 2),
+                ->whereDate('date', '>=', $now->copy()->startOfMonth()->toDateString())->sum('amount'), 2),
 
             // Everything below reflects the ?period= filter (defaults to "month"); the
             // fields above stay fixed to their own named windows for backward
@@ -138,14 +144,14 @@ class ReportController extends Controller
             'period_tax_collected' => round((float) $periodSales()->sum('tax_total'), 2),
             'period_discounts_given' => round((float) $periodSales()->sum('discount_total'), 2),
             'period_expenses' => round((float) Expense::when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->when($periodFrom, fn ($q) => $q->whereDate('date', '>=', $periodFrom))
-                ->whereDate('date', '<=', $periodTo)->sum('amount'), 2),
+                ->when($periodFrom, fn ($q) => $q->whereDate('date', '>=', $periodFrom->toDateString()))
+                ->whereDate('date', '<=', $periodTo->toDateString())->sum('amount'), 2),
             'period_cash_sales' => (float) ($periodPaymentBreakdown['cash'] ?? 0),
             'period_mobile_money_sales' => (float) ($periodPaymentBreakdown['mobile_money'] ?? 0),
             'period_card_sales' => (float) (($periodPaymentBreakdown['card'] ?? 0) + ($periodPaymentBreakdown['pos_terminal'] ?? 0)),
             'period_bank_transfer_sales' => (float) ($periodPaymentBreakdown['bank_transfer'] ?? 0),
-            'period_new_customers' => Customer::when($periodFrom, fn ($q) => $q->where('created_at', '>=', $periodFrom))
-                ->where('created_at', '<=', $periodTo)->count(),
+            'period_new_customers' => Customer::when($periodFrom, fn ($q) => $q->where('created_at', '>=', $this->utcStart($periodFrom)))
+                ->where('created_at', '<=', $this->utcEnd($periodTo))->count(),
         ];
     }
 
@@ -165,35 +171,41 @@ class ReportController extends Controller
         $period = $request->string('period')->toString();
         $branchId = $request->integer('branch_id') ?: null;
 
+        $now = $this->localNow();
         if ($request->filled('from') || $request->filled('to')) {
-            $from = $request->date('from') ?? now()->subDays(29)->startOfDay();
-            $to = $request->date('to') ?? now()->endOfDay();
+            $from = $this->localDate($request->input('from'), $now->copy()->subDays(29));
+            $to = $this->localDate($request->input('to'), $now);
             $groupBy = $request->string('group_by', 'day')->toString();
         } else {
             $resolvedPeriod = in_array($period, self::PERIODS, true) ? $period : 'month';
             [$periodFrom, $to] = $this->resolvePeriodRange($resolvedPeriod);
-            $from = $periodFrom ?? Sale::where('status', 'completed')->min('completed_at') ?? now()->subYear()->startOfDay();
+            $firstSale = Sale::where('status', 'completed')->min('completed_at');
+            $from = $periodFrom ?? ($firstSale ? Carbon::parse($firstSale, 'UTC')->setTimezone($this->tz()) : $now->copy()->subYear());
             $groupBy = $request->string('group_by', in_array($resolvedPeriod, ['year', 'all'], true) ? 'month' : 'day')->toString();
         }
 
+        // One row per sale, then bucketed into the shop's local calendar days.
         $rows = SaleItem::query()
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->where('sales.status', 'completed')
-            ->whereDate('sales.completed_at', '>=', $from)
-            ->whereDate('sales.completed_at', '<=', $to)
+            ->where('sales.completed_at', '>=', $this->utcStart($from))
+            ->where('sales.completed_at', '<=', $this->utcEnd($to))
             ->when($branchId, fn ($q) => $q->where('sales.branch_id', $branchId))
-            ->selectRaw("DATE(sales.completed_at) as date,
-                COALESCE(SUM(sale_items.unit_price * sale_items.quantity - sale_items.discount_amount), 0) as revenue,
-                COALESCE(SUM((sale_items.unit_price * sale_items.quantity - sale_items.discount_amount) - (sale_items.cost_price * sale_items.quantity)), 0) as profit")
-            ->groupBy('date')
-            ->orderBy('date')
+            ->selectRaw('sales.id, sales.completed_at,
+                COALESCE(SUM(sale_items.unit_price * sale_items.quantity / sale_items.price_divisor - sale_items.discount_amount), 0) as revenue,
+                COALESCE(SUM((sale_items.unit_price * sale_items.quantity / sale_items.price_divisor - sale_items.discount_amount) - (sale_items.cost_price * sale_items.quantity / sale_items.price_divisor)), 0) as profit')
+            ->groupBy('sales.id', 'sales.completed_at')
             ->get();
 
-        $points = $rows->map(fn ($row) => [
-            'date' => $row->date,
-            'revenue' => round((float) $row->revenue, 2),
-            'profit' => round((float) $row->profit, 2),
-        ]);
+        $points = $rows->groupBy(fn ($row) => $this->localDayOf($row->completed_at))
+            ->map(fn ($group, $date) => [
+                'date' => $date,
+                'revenue' => round((float) $group->sum('revenue'), 2),
+                'profit' => round((float) $group->sum('profit'), 2),
+                'orders' => $group->count(),
+            ])
+            ->sortKeys()
+            ->values();
 
         if ($groupBy === 'month') {
             return $points->groupBy(fn ($p) => substr($p['date'], 0, 7))
@@ -201,6 +213,7 @@ class ReportController extends Controller
                     'date' => $month,
                     'revenue' => round($group->sum('revenue'), 2),
                     'profit' => round($group->sum('profit'), 2),
+                    'orders' => (int) $group->sum('orders'),
                 ])
                 ->values();
         }
@@ -213,17 +226,19 @@ class ReportController extends Controller
     {
         abort_unless($request->user()->can('sales.view.all'), 403);
 
+        $now = $this->localNow();
         if ($request->filled('from') || $request->filled('to')) {
-            $from = $request->date('from') ?? now()->subDays(29)->startOfDay();
-            $to = $request->date('to') ?? now()->endOfDay();
+            $from = $this->localDate($request->input('from'), $now->copy()->subDays(29));
+            $to = $this->localDate($request->input('to'), $now);
         } else {
             $period = in_array($request->string('period')->toString(), self::PERIODS, true)
                 ? $request->string('period')->toString()
                 : null;
             [$periodFrom, $periodTo] = $period
                 ? $this->resolvePeriodRange($period)
-                : [now()->subDays(29)->startOfDay(), now()->endOfDay()];
-            $from = $periodFrom ?? Sale::where('status', 'completed')->min('completed_at') ?? now()->subYear()->startOfDay();
+                : [$now->copy()->subDays(29)->startOfDay(), $now->copy()->endOfDay()];
+            $firstSale = Sale::where('status', 'completed')->min('completed_at');
+            $from = $periodFrom ?? ($firstSale ? Carbon::parse($firstSale, 'UTC')->setTimezone($this->tz()) : $now->copy()->subYear());
             $to = $periodTo;
         }
         $limit = min($request->integer('limit', 10), 50);
@@ -231,11 +246,11 @@ class ReportController extends Controller
         $rows = SaleItem::query()
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->where('sales.status', 'completed')
-            ->whereDate('sales.completed_at', '>=', $from)
-            ->whereDate('sales.completed_at', '<=', $to)
+            ->where('sales.completed_at', '>=', $this->utcStart($from))
+            ->where('sales.completed_at', '<=', $this->utcEnd($to))
             ->selectRaw("sale_items.product_id, sale_items.product_name,
-                SUM(sale_items.quantity) as quantity_sold,
-                COALESCE(SUM(sale_items.unit_price * sale_items.quantity - sale_items.discount_amount), 0) as revenue")
+                SUM(sale_items.quantity * 1.0 / sale_items.price_divisor) as quantity_sold,
+                COALESCE(SUM(sale_items.unit_price * sale_items.quantity / sale_items.price_divisor - sale_items.discount_amount), 0) as revenue")
             ->groupBy('sale_items.product_id', 'sale_items.product_name')
             ->get();
 
@@ -264,16 +279,22 @@ class ReportController extends Controller
     {
         abort_unless($request->user()->can('sales.view.all'), 403);
 
-        $from = $request->date('from') ?? now()->startOfMonth();
-        $to = $request->date('to') ?? now()->endOfDay();
+        $now = $this->localNow();
+        $from = $this->localDate($request->input('from'), $now->copy()->startOfMonth());
+        $to = $this->localDate($request->input('to'), $now);
 
         $rows = Sale::where('status', 'completed')
-            ->whereDate('completed_at', '>=', $from)
-            ->whereDate('completed_at', '<=', $to)
-            ->selectRaw('DATE(completed_at) as date, COALESCE(SUM(tax_total), 0) as tax_collected, COALESCE(SUM(grand_total), 0) as gross_sales')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
+            ->where('completed_at', '>=', $this->utcStart($from))
+            ->where('completed_at', '<=', $this->utcEnd($to))
+            ->get(['completed_at', 'tax_total', 'grand_total'])
+            ->groupBy(fn ($sale) => $this->localDayOf($sale->completed_at))
+            ->map(fn ($group, $date) => [
+                'date' => $date,
+                'tax_collected' => round((float) $group->sum('tax_total'), 2),
+                'gross_sales' => round((float) $group->sum('grand_total'), 2),
+            ])
+            ->sortKeys()
+            ->values();
 
         return [
             'rows' => $rows,

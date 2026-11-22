@@ -161,6 +161,24 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('expenses', ExpenseController::class);
         Route::get('/reports/profit', ProfitReportController::class);
 
+        // Butchery & fresh foods platform.
+        Route::prefix('butchery')->group(function () {
+            Route::get('/summary', [\App\Http\Controllers\Api\V1\Butchery\ButcheryController::class, 'summary']);
+            Route::post('/prices', [\App\Http\Controllers\Api\V1\Butchery\ButcheryController::class, 'updatePrices']);
+            Route::get('/breakdowns', [\App\Http\Controllers\Api\V1\Butchery\ButcheryController::class, 'breakdowns']);
+            Route::post('/breakdowns', [\App\Http\Controllers\Api\V1\Butchery\ButcheryController::class, 'storeBreakdown']);
+        });
+
+        // Pharmacy platform (Pharmacy & Health businesses only).
+        Route::prefix('pharmacy')->group(function () {
+            Route::get('/catalog', [\App\Http\Controllers\Api\V1\Pharmacy\PharmacyController::class, 'catalog']);
+            Route::get('/summary', [\App\Http\Controllers\Api\V1\Pharmacy\PharmacyController::class, 'summary']);
+            Route::get('/expiry', [\App\Http\Controllers\Api\V1\Pharmacy\PharmacyController::class, 'expiry']);
+            Route::get('/products/{product}/batches', [\App\Http\Controllers\Api\V1\Pharmacy\PharmacyController::class, 'productBatches']);
+            Route::get('/prescriptions', [\App\Http\Controllers\Api\V1\Pharmacy\PharmacyController::class, 'prescriptions']);
+            Route::get('/controlled-register', [\App\Http\Controllers\Api\V1\Pharmacy\PharmacyController::class, 'controlledRegister']);
+        });
+
         // --- Reports & BI (Phase 5) ---------------------------------------------
         Route::get('/reports/dashboard-summary', [ReportController::class, 'dashboardSummary']);
         Route::get('/reports/sales-trend', [ReportController::class, 'salesTrend']);

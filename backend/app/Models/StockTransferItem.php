@@ -10,7 +10,9 @@ class StockTransferItem extends Model
 {
     use BelongsToBusiness;
 
-    protected $fillable = ['business_id', 'stock_transfer_id', 'product_id', 'quantity'];
+    protected $fillable = ['business_id', 'stock_transfer_id', 'product_id', 'quantity', 'batches'];
+
+    protected $casts = ['batches' => 'array'];
 
     public function product(): BelongsTo
     {

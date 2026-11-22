@@ -5,12 +5,14 @@ namespace App\Services\Sales;
 use App\Models\Customer;
 use App\Models\LoyaltyTransaction;
 use App\Models\PaymentMethod;
+use App\Models\Prescription;
 use App\Models\Product;
 use App\Models\RoleLimit;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\User;
 use App\Services\Inventory\StockMovementService;
+use App\Services\Pharmacy\PharmacyStockService;
 use App\Support\Tenancy\BusinessContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -28,6 +30,7 @@ class SaleService
     public function __construct(
         private StockMovementService $stockMovementService,
         private ReceiptNumberService $receiptNumberService,
+        private PharmacyStockService $pharmacyStockService,
     ) {}
 
     /**
@@ -77,6 +80,8 @@ class SaleService
                 SaleItem::create([...$item, 'business_id' => BusinessContext::id(), 'sale_id' => $sale->id]);
             }
 
+            $this->recordPrescription($sale, $data['prescription'] ?? null, $cashier);
+
             if ($hold) {
                 return $sale->load('items');
             }
@@ -94,17 +99,69 @@ class SaleService
         return DB::transaction(fn () => $this->finalize($sale->fresh('items'), $payments, $cashier, $redeemPoints));
     }
 
+    /**
+     * Pharmacy platform: prescription-only medicines can't leave the counter without a
+     * prescription on record (prescriber, patient, Rx number), stored with the sale.
+     */
+    private function recordPrescription(Sale $sale, ?array $prescription, User $cashier): void
+    {
+        if (! $cashier->business->isPharmacy()) {
+            return;
+        }
+
+        $rxItems = Product::whereIn('id', $sale->items()->pluck('product_id')->filter())
+            ->where('requires_prescription', true)->pluck('name');
+
+        if ($rxItems->isNotEmpty()) {
+            $missing = collect(['prescriber_name' => "the prescriber's name", 'patient_name' => "the patient's name", 'rx_number' => 'the prescription number'])
+                ->filter(fn ($label, $key) => blank($prescription[$key] ?? null));
+            if ($missing->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'prescription' => 'A prescription is required for '.$rxItems->join(', ', ' and ').'. Please enter '.$missing->values()->join(', ', ' and ').'.',
+                ]);
+            }
+        }
+
+        if ($prescription && filled($prescription['patient_name'] ?? null) && filled($prescription['rx_number'] ?? null)) {
+            Prescription::create([
+                'business_id' => BusinessContext::id(),
+                'sale_id' => $sale->id,
+                'rx_number' => $prescription['rx_number'],
+                'prescriber_name' => $prescription['prescriber_name'] ?? '',
+                'prescriber_reg_no' => $prescription['prescriber_reg_no'] ?? null,
+                'facility' => $prescription['facility'] ?? null,
+                'issued_on' => $prescription['issued_on'] ?? null,
+                'patient_name' => $prescription['patient_name'],
+                'patient_age' => $prescription['patient_age'] ?? null,
+                'patient_phone' => $prescription['patient_phone'] ?? null,
+                'notes' => $prescription['notes'] ?? null,
+                'recorded_by' => $cashier->id,
+            ]);
+        }
+    }
+
     private function finalize(Sale $sale, array $payments, User $cashier, int $redeemPoints = 0): Sale
     {
         $branch = $sale->branch;
+        $isPharmacy = $cashier->business->isPharmacy();
+        $prescription = $isPharmacy ? $sale->prescription()->first() : null;
 
         foreach ($sale->items as $item) {
             if (! $item->product_id) {
                 continue;
             }
 
+            $product = Product::findOrFail($item->product_id);
+
+            // Pharmacy medicines: nearest-expiry batch first, never expired stock.
+            if ($isPharmacy && $product->has_batch) {
+                $this->pharmacyStockService->dispense($item, $product, $sale, $prescription, $cashier->id);
+
+                continue;
+            }
+
             $this->stockMovementService->adjust(
-                product: Product::findOrFail($item->product_id),
+                product: $product,
                 branchId: $sale->branch_id,
                 quantityChange: -$item->quantity,
                 type: 'sale',
@@ -165,7 +222,7 @@ class SaleService
 
         $this->awardLoyaltyPoints($sale, $customer, $cashier->business->settings);
 
-        return $sale->fresh(['items', 'payments.paymentMethod', 'customer']);
+        return $sale->fresh(['items.batches', 'payments.paymentMethod', 'customer', 'prescription']);
     }
 
     /**
@@ -261,7 +318,9 @@ class SaleService
             $quantity = (int) $line['quantity'];
             $unitPrice = (float) ($line['unit_price'] ?? $product->selling_price);
             $discountAmount = (float) ($line['discount_amount'] ?? 0);
-            $lineGross = $unitPrice * $quantity;
+            // Weighed products: quantity is in grams, price is per kg.
+            $divisor = $product->sold_by_weight ? \App\Support\Butchery\ButcheryCatalog::GRAMS_PER_KG : 1;
+            $lineGross = round($unitPrice * $quantity / $divisor, 2);
 
             if ($discountAmount > $lineGross) {
                 throw ValidationException::withMessages([
@@ -296,11 +355,13 @@ class SaleService
                 'product_name' => $product->name,
                 'sku' => $product->sku,
                 'quantity' => $quantity,
+                'price_divisor' => $divisor,
                 'unit_price' => $unitPrice,
                 'cost_price' => $product->cost_price,
                 'discount_amount' => $discountAmount,
                 'tax_amount' => round($taxAmount, 2),
                 'line_total' => round($lineTotal, 2),
+                'dosage_instructions' => filled($line['dosage_instructions'] ?? null) ? trim($line['dosage_instructions']) : null,
             ];
 
             $subtotal += $lineGross;

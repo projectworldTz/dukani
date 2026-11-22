@@ -32,6 +32,7 @@ class UpdateBusinessSettingRequest extends FormRequest
             'efd_uin' => ['sometimes', 'nullable', 'string', 'max:150', 'required_if:efd_enabled,true'],
             'tax_office' => ['sometimes', 'nullable', 'string', 'max:150', 'required_if:efd_enabled,true'],
             'receipt_paper_size' => ['sometimes', 'in:58mm,80mm'],
+            'advanced_features' => ['sometimes', 'boolean'],
         ];
     }
 }

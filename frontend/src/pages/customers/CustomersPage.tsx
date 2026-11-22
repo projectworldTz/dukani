@@ -20,13 +20,15 @@ import {
 } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { customersApi, type CustomerRecord } from '../../api/endpoints/customers'
 import { useAuthStore } from '../../stores/authStore'
 
 export function CustomersPage() {
   const queryClient = useQueryClient()
   const currency = useAuthStore((s) => s.user?.business?.currency ?? '')
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [searchParams] = useSearchParams()
+  const [dialogOpen, setDialogOpen] = useState(() => searchParams.get('new') === '1')
   const [form, setForm] = useState<Partial<CustomerRecord>>({ customer_type: 'retail', credit_limit: 0 })
 
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: () => customersApi.list() })

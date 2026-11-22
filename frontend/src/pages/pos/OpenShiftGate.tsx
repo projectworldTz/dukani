@@ -1,4 +1,5 @@
-import { Box, Button, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
+import { PointOfSale } from '@mui/icons-material'
+import { Box, Button, CircularProgress, InputAdornment, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { branchesApi } from '../../api/endpoints/branches'
@@ -10,62 +11,74 @@ import { useAuthStore } from '../../stores/authStore'
 export function OpenShiftGate({ children }: { children: (branchId: number, shiftId: number) => ReactNode }) {
   const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
-  const [branchId, setBranchId] = useState<number | ''>(user?.branch_id ?? '')
-  const [openingCash, setOpeningCash] = useState('0')
+  const currency = user?.business?.currency ?? ''
+  const [pickedBranchId, setPickedBranchId] = useState<number | ''>('')
+  const [openingCash, setOpeningCash] = useState('')
 
   const shiftQuery = useQuery({ queryKey: ['shift', 'current'], queryFn: shiftsApi.current })
   const branchesQuery = useQuery({ queryKey: ['branches'], queryFn: branchesApi.list })
+  const branches = branchesQuery.data ?? []
+
+  // Single-branch shops (and staff tied to one branch) never have to choose.
+  const autoBranchId = user?.branch_id ?? (branches.length === 1 ? branches[0].id : null)
+  const branchId = autoBranchId ?? pickedBranchId
 
   const openMutation = useMutation({
-    mutationFn: () => shiftsApi.open(Number(branchId), Number(openingCash)),
+    mutationFn: () => shiftsApi.open(Number(branchId), Number(openingCash || 0)),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shift', 'current'] }),
-    meta: { successMessage: 'Shift opened.' },
+    meta: { successMessage: 'Shift started — happy selling!' },
   })
 
   if (shiftQuery.isLoading || branchesQuery.isLoading) {
-    return <Typography sx={{ p: 4 }}>Loading…</Typography>
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, py: 10 }}>
+        <CircularProgress size={28} />
+        <Typography color="text.secondary">Getting the till ready…</Typography>
+      </Box>
+    )
   }
 
-  if (shiftQuery.data) {
+  if (shiftQuery.data?.id) {
     return <>{children(shiftQuery.data.branch_id, shiftQuery.data.id)}</>
   }
 
-  const assignedBranch = user?.branch_id ? branchesQuery.data?.find((branch) => branch.id === user.branch_id) : null
-
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 4 }, width: '100%', maxWidth: 380 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700 }} gutterBottom>
-          Open your shift
+    <Box sx={{ display: 'flex', justifyContent: 'center', mt: { xs: 3, sm: 8 } }}>
+      <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, width: '100%', maxWidth: 420, borderRadius: 4, textAlign: 'center' }}>
+        <Box sx={{ width: 64, height: 64, mx: 'auto', mb: 2, borderRadius: '50%', bgcolor: '#DBEAFE', color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <PointOfSale sx={{ fontSize: 32 }} />
+        </Box>
+        <Typography variant="h5" sx={{ fontWeight: 800 }} gutterBottom>
+          Start your shift
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Declare your opening cash float before ringing up sales.
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          How much cash is in the drawer right now? At the end of the day we'll help you check it adds up.
         </Typography>
-        <Stack spacing={2}>
-          {assignedBranch ? (
-            <TextField label="Register location" value={assignedBranch.name} slotProps={{ input: { readOnly: true } }} helperText="Your account is assigned to this branch." />
-          ) : (
-            <TextField select label="Branch" value={branchId} onChange={(e) => setBranchId(Number(e.target.value))}>
-              {branchesQuery.data?.map((b) => (
-                <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
+        <Stack spacing={2} sx={{ textAlign: 'left' }}>
+          {!autoBranchId && (
+            <TextField select label="Which branch are you selling at?" value={pickedBranchId} onChange={(e) => setPickedBranchId(Number(e.target.value))}>
+              {branches.map((b) => (
+                <MenuItem key={b.id} value={b.id}>
+                  {b.name}
+                </MenuItem>
               ))}
             </TextField>
           )}
           <TextField
-            label="Opening cash"
+            label="Cash in drawer"
             type="number"
             value={openingCash}
+            placeholder="0"
+            autoFocus
             onChange={(e) => setOpeningCash(e.target.value)}
-            helperText="Enter 0 if the cash drawer starts empty."
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && branchId) openMutation.mutate()
+            }}
+            helperText="Leave empty if the drawer is empty."
+            slotProps={{ input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> }, htmlInput: { min: 0 } }}
           />
-          <Button
-            variant="contained"
-            size="large"
-            disabled={!branchId || openingCash === ''}
-            loading={openMutation.isPending}
-            onClick={() => openMutation.mutate()}
-          >
-            Open shift
+          <Button variant="contained" size="large" disabled={!branchId} loading={openMutation.isPending} onClick={() => openMutation.mutate()} sx={{ py: 1.5, fontSize: 16 }}>
+            Start selling
           </Button>
         </Stack>
       </Paper>

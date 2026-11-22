@@ -21,7 +21,7 @@ describe('PaymentDialog', () => {
       />,
     )
 
-    expect(screen.getByText(/12,500\.00/)).toBeInTheDocument()
+    expect(screen.getByText(/12,500/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Complete sale' }))
     expect(onConfirm).toHaveBeenCalledWith([{ payment_method_id: 1, amount: 12500 }])
   })

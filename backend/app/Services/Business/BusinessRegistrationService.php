@@ -7,6 +7,8 @@ use App\Models\Business;
 use App\Models\BusinessSetting;
 use App\Models\PaymentMethod;
 use App\Models\PlatformNotification;
+use App\Models\ProductCategory;
+use App\Support\Pharmacy\PharmacyCatalog;
 use App\Models\StaffProfile;
 use App\Models\User;
 use App\Services\Rbac\RolePermissionSeederService;
@@ -77,6 +79,15 @@ class BusinessRegistrationService
                     'name' => $method['name'],
                     'type' => $method['type'],
                 ]);
+            }
+
+            $starter = PharmacyCatalog::isPharmacy($business)
+                ? PharmacyCatalog::STARTER_CATEGORIES
+                : (\App\Support\Butchery\ButcheryCatalog::isButchery($business) ? \App\Support\Butchery\ButcheryCatalog::STARTER_CATEGORIES : []);
+            if ($starter) {
+                foreach ($starter as $name) {
+                    ProductCategory::create(['business_id' => $business->id, 'name' => $name]);
+                }
             }
 
             PlatformNotification::create([

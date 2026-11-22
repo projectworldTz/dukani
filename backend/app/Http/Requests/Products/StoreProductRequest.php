@@ -44,6 +44,46 @@ class StoreProductRequest extends FormRequest
             'barcode' => ['nullable', 'string', 'max:64', 'required_with:barcode_type', 'prohibits:generate_barcode'],
             'barcode_type' => ['nullable', Rule::in(['EAN13', 'EAN8', 'UPCA', 'UPCE', 'CODE128'])],
             'generate_barcode' => ['nullable', 'boolean'],
+
+            // Optional stock already on the shelf when the product is first added, so a
+            // new shop can create a product and start selling it in one step.
+
+            // Pharmacy medicine details.
+            'generic_name' => ['nullable', 'string', 'max:255'],
+            'strength' => ['nullable', 'string', 'max:100'],
+            'dosage_form' => ['nullable', Rule::in(\App\Support\Pharmacy\PharmacyCatalog::DOSAGE_FORMS)],
+            'pack_size' => ['nullable', 'string', 'max:100'],
+            'manufacturer' => ['nullable', 'string', 'max:255'],
+            'requires_prescription' => ['nullable', 'boolean'],
+            'is_controlled' => ['nullable', 'boolean'],
+            // Butchery: priced per kg, stock kept in grams.
+            'sold_by_weight' => ['nullable', 'boolean'],
+            'opening_batch_number' => ['nullable', 'string', 'max:100'],
+            'opening_expiry_date' => ['nullable', 'date', 'after_or_equal:today'],
+
+            'opening_stock' => ['nullable', 'integer', 'min:0'],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('business_id', $businessId)],
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function ($validator) {
+                if ((int) $this->input('opening_stock', 0) > 0 && ! $this->user()->can('inventory.adjust')) {
+                    $validator->errors()->add('opening_stock', 'You do not have permission to add stock.');
+                }
+
+                // A pharmacy's first stock of a medicine must say which batch it is and when it expires.
+                if ((int) $this->input('opening_stock', 0) > 0 && $this->user()->business->isPharmacy()) {
+                    if (blank($this->input('opening_batch_number'))) {
+                        $validator->errors()->add('opening_batch_number', 'Enter the batch number printed on the pack.');
+                    }
+                    if (blank($this->input('opening_expiry_date'))) {
+                        $validator->errors()->add('opening_expiry_date', 'Enter the expiry date printed on the pack.');
+                    }
+                }
+            },
         ];
     }
 }

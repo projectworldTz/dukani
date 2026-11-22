@@ -8,6 +8,7 @@ use App\Models\StockTake;
 use App\Models\StockTakeItem;
 use App\Models\User;
 use App\Services\Inventory\StockMovementService;
+use App\Services\Pharmacy\PharmacyStockService;
 use App\Support\Tenancy\BusinessContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -22,7 +23,10 @@ use Illuminate\Validation\ValidationException;
  */
 class StockTakeService
 {
-    public function __construct(private StockMovementService $stockMovementService) {}
+    public function __construct(
+        private StockMovementService $stockMovementService,
+        private PharmacyStockService $pharmacyStockService,
+    ) {}
 
     /** @param  int[]  $productIds */
     public function create(int $branchId, array $productIds, User $user): StockTake
@@ -89,8 +93,19 @@ class StockTakeService
                     continue;
                 }
 
+                $product = Product::findOrFail($item->product_id);
+                $isPharmacy = $approver->business->isPharmacy();
+                $current = (int) (Inventory::where('product_id', $product->id)->where('branch_id', $stockTake->branch_id)->value('quantity') ?? 0);
+                $diff = (int) $item->counted_quantity - $current;
+
+                // Pharmacy: a shortfall comes out of the batches (expired first — they are
+                // the units that should have left already); extra units stay untracked.
+                if ($isPharmacy && $product->has_batch && $diff < 0) {
+                    $this->pharmacyStockService->takeFromBatches($product->id, $stockTake->branch_id, -$diff, null, preferExpired: true);
+                }
+
                 $this->stockMovementService->correctTo(
-                    product: Product::findOrFail($item->product_id),
+                    product: $product,
                     branchId: $stockTake->branch_id,
                     targetQuantity: $item->counted_quantity,
                     type: 'adjustment',
@@ -98,6 +113,13 @@ class StockTakeService
                     reference: $stockTake,
                     userId: $approver->id,
                 );
+
+                if ($isPharmacy && $product->is_controlled && $diff !== 0) {
+                    $this->pharmacyStockService->register(
+                        $product, $stockTake->branch_id, 'adjusted', in: max(0, $diff), out: max(0, -$diff),
+                        reference: "Stock take #{$stockTake->id}", userId: $approver->id,
+                    );
+                }
             }
 
             $stockTake->update(['status' => 'approved', 'approved_by' => $approver->id, 'approved_at' => now()]);

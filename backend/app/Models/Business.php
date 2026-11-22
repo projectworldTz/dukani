@@ -53,6 +53,26 @@ class Business extends Model
         return $this->belongsTo(User::class, 'owner_user_id');
     }
 
+    /** 'pharmacy' / 'butchery' for those categories, otherwise the general POS. */
+    public function platform(): string
+    {
+        return match (true) {
+            \App\Support\Pharmacy\PharmacyCatalog::isPharmacy($this) => 'pharmacy',
+            \App\Support\Butchery\ButcheryCatalog::isButchery($this) => 'butchery',
+            default => 'general',
+        };
+    }
+
+    public function isButchery(): bool
+    {
+        return $this->platform() === 'butchery';
+    }
+
+    public function isPharmacy(): bool
+    {
+        return $this->platform() === 'pharmacy';
+    }
+
     public function settings(): HasOne
     {
         return $this->hasOne(BusinessSetting::class);

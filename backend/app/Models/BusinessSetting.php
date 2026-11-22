@@ -28,6 +28,7 @@ class BusinessSetting extends Model
         'efd_uin',
         'tax_office',
         'receipt_paper_size',
+        'advanced_features',
     ];
 
     protected function casts(): array
@@ -39,6 +40,7 @@ class BusinessSetting extends Model
             'loyalty_spend_per_point' => 'decimal:2',
             'loyalty_point_value' => 'decimal:2',
             'efd_enabled' => 'boolean',
+            'advanced_features' => 'boolean',
         ];
     }
 }

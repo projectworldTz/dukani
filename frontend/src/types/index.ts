@@ -16,6 +16,11 @@ export interface AuthUser {
     slug: string
     currency: string
     timezone: string
+    /** Off = simple mode: multi-step stock/purchasing workflows are hidden from the menu. */
+    advanced_features?: boolean
+    category?: string | null
+    /** 'pharmacy' for Pharmacy & Health businesses — switches the whole app to the pharmacy platform. */
+    platform?: 'general' | 'pharmacy' | 'butchery'
   } | null
 }
 
@@ -36,6 +41,19 @@ export interface Product {
   description: string | null
   sku: string | null
   image_url: string | null
+  /** Pharmacy medicine details (null for general products). */
+  generic_name?: string | null
+  strength?: string | null
+  dosage_form?: string | null
+  pack_size?: string | null
+  manufacturer?: string | null
+  requires_prescription?: boolean
+  is_controlled?: boolean
+  /** Butchery: priced per kg; every stock quantity is in grams. */
+  sold_by_weight?: boolean
+  /** Pharmacy, with a branch: units in expired batches (not sellable) and the next expiry date. */
+  expired_stock?: number
+  nearest_expiry?: string | null
   category: { id: number; name: string } | null
   brand: { id: number; name: string } | null
   unit: { id: number; name: string; short_name: string } | null
@@ -62,6 +80,8 @@ export interface CartLine {
   product: Product
   quantity: number
   discountAmount: number
+  /** Pharmacy: how the patient should take it — printed on the receipt. */
+  dosage?: string
 }
 
 export interface PaymentMethod {
@@ -108,11 +128,16 @@ export interface Sale {
     product_name: string
     sku: string | null
     quantity: number
+    /** 1000 when quantity is in grams and unit_price is per kg. */
+    price_divisor?: number
     unit_price: string
     discount_amount: string
     tax_amount: string
     line_total: string
+    dosage_instructions?: string | null
+    batches?: { batch_number: string | null; expiry_date: string | null; quantity: number }[]
   }[]
+  prescription?: Prescription | null
   payments?: { payment_method: string; amount: string; reference: string | null }[]
   completed_at: string | null
   created_at: string
@@ -122,6 +147,18 @@ export interface Sale {
   fiscal_verification_url?: string | null
   fiscal_z_number?: string | null
   fiscalized_at?: string | null
+}
+
+export interface Prescription {
+  rx_number: string
+  prescriber_name: string
+  prescriber_reg_no?: string | null
+  facility?: string | null
+  issued_on?: string | null
+  patient_name: string
+  patient_age?: number | null
+  patient_phone?: string | null
+  notes?: string | null
 }
 
 export interface StaffMember {

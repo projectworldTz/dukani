@@ -111,6 +111,36 @@ class CustomersLoyaltyReturnsQuotationsFlowTest extends TestCase
         $this->assertEquals(0, $customerShow['outstanding_balance']);
     }
 
+    public function test_cash_change_never_counts_as_credit_for_the_customer(): void
+    {
+        $product = $this->createProduct();
+        $customer = $this->api()->postJson('/api/v1/customers', ['name' => 'Asha', 'credit_limit' => 15000])->assertCreated()->json();
+        $cashId = $this->openShiftAndCashMethod();
+
+        // Pays 25000 cash for a 20000 sale and gets 5000 change.
+        $this->api()->postJson('/api/v1/sales', [
+            'branch_id' => $this->mainBranch->id, 'customer_id' => $customer['id'],
+            'items' => [['product_id' => $product['id'], 'quantity' => 1]],
+            'payments' => [['payment_method_id' => $cashId, 'amount' => 25000]],
+        ])->assertCreated();
+        $this->assertEquals(0, $this->api()->getJson("/api/v1/customers/{$customer['id']}")->json('outstanding_balance'));
+
+        // Then buys 20000 on credit paying 5000: owes 15000 — the earlier change doesn't reduce it.
+        $this->api()->postJson('/api/v1/sales', [
+            'branch_id' => $this->mainBranch->id, 'customer_id' => $customer['id'],
+            'items' => [['product_id' => $product['id'], 'quantity' => 1]],
+            'payments' => [['payment_method_id' => $cashId, 'amount' => 5000]],
+        ])->assertCreated();
+        $this->assertEquals(15000, $this->api()->getJson("/api/v1/customers/{$customer['id']}")->json('outstanding_balance'));
+
+        // Credit limit is used up, so another credit sale is refused.
+        $this->api()->postJson('/api/v1/sales', [
+            'branch_id' => $this->mainBranch->id, 'customer_id' => $customer['id'],
+            'items' => [['product_id' => $product['id'], 'quantity' => 1]],
+            'payments' => [['payment_method_id' => $cashId, 'amount' => 15000]],
+        ])->assertStatus(422);
+    }
+
     public function test_loyalty_points_are_earned_and_can_be_redeemed(): void
     {
         $this->api()->putJson('/api/v1/business/settings', [

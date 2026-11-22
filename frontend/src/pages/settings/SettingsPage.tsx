@@ -11,6 +11,18 @@ export function SettingsPage() {
   const [form, setForm] = useState<Record<string, string>>({})
   const [loyaltyEnabled, setLoyaltyEnabled] = useState(false)
   const [efdEnabled, setEfdEnabled] = useState(false)
+  const advancedEnabled = !!user?.business?.advanced_features
+
+  // Saved immediately (no "Save" click needed) so the menu changes the moment it is flipped.
+  const advancedMutation = useMutation({
+    mutationFn: (enabled: boolean) => businessApi.updateSettings({ advanced_features: enabled }),
+    onSuccess: (_, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ['business-settings'] })
+      const current = useAuthStore.getState().user
+      if (current?.business) setUser({ ...current, business: { ...current.business, advanced_features: enabled } })
+    },
+    meta: { successMessage: 'Menu updated.' },
+  })
 
   useEffect(() => {
     if (query.data) {
@@ -49,7 +61,7 @@ export function SettingsPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['business-settings'] })
       if (user && data?.business) {
-        setUser({ ...user, business: { ...(user.business ?? {}), ...data.business } })
+        setUser({ ...user, business: { ...(user.business ?? {}), ...data.business, advanced_features: !!data.settings?.advanced_features } })
       }
     },
     meta: { successMessage: 'Settings saved.' },
@@ -58,10 +70,33 @@ export function SettingsPage() {
   return (
     <Box>
       <Typography variant="h5" sx={{ fontWeight: 800 }} gutterBottom>
-        Business Settings
+        Settings
       </Typography>
 
-      <Paper variant="outlined" sx={{ p: 3, maxWidth: 480 }}>
+      <Paper variant="outlined" sx={{ p: 3, maxWidth: 480, mb: 3, borderRadius: 3 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+          Advanced features
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          Most shops don't need these. Turn them on if you have several branches or a bigger team that needs suppliers,
+          purchase orders, stock transfers, stock taking, quotations, custom roles or the audit log.
+        </Typography>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={advancedEnabled}
+              disabled={advancedMutation.isPending}
+              onChange={(e) => advancedMutation.mutate(e.target.checked)}
+            />
+          }
+          label={advancedEnabled ? 'Advanced features are ON' : 'Advanced features are OFF (simple mode)'}
+        />
+      </Paper>
+
+      <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
+        Business details
+      </Typography>
+      <Paper variant="outlined" sx={{ p: 3, maxWidth: 480, borderRadius: 3 }}>
         <Stack spacing={2}>
           <TextField label="Business Name" value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <TextField label="Currency" value={form.currency ?? ''} onChange={(e) => setForm({ ...form, currency: e.target.value })} />

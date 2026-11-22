@@ -71,7 +71,7 @@ class ReceiptController extends Controller
 
     private function buildPdf(Sale $sale, $business, string $paper)
     {
-        $sale->loadMissing('items', 'payments.paymentMethod', 'cashier', 'branch');
+        $sale->loadMissing('items.batches', 'payments.paymentMethod', 'cashier', 'branch', 'prescription', 'business');
 
         $isFiscal = $sale->fiscal_status === 'fiscalized' && $sale->fiscal_verification_url;
         $qrPayload = $isFiscal

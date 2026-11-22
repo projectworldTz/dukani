@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api\V1\Reports;
 
+use App\Http\Controllers\Api\V1\Reports\Concerns\UsesBusinessTime;
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\SaleItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 /**
@@ -18,6 +20,8 @@ use Illuminate\Validation\Rule;
  */
 class ProfitReportController extends Controller
 {
+    use UsesBusinessTime;
+
     public function __invoke(Request $request)
     {
         abort_unless($request->user()->can('sales.view.all'), 403);
@@ -34,12 +38,12 @@ class ProfitReportController extends Controller
         $base = SaleItem::query()
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->whereIn('sales.status', ['completed', 'partially_refunded'])
-            ->when($data['from'] ?? null, fn ($q, $from) => $q->whereDate('sales.completed_at', '>=', $from))
-            ->when($data['to'] ?? null, fn ($q, $to) => $q->whereDate('sales.completed_at', '<=', $to))
+            ->when($data['from'] ?? null, fn ($q, $from) => $q->where('sales.completed_at', '>=', $this->utcStart(Carbon::parse($from, $this->tz()))))
+            ->when($data['to'] ?? null, fn ($q, $to) => $q->where('sales.completed_at', '<=', $this->utcEnd(Carbon::parse($to, $this->tz()))))
             ->when($data['branch_id'] ?? null, fn ($q, $branchId) => $q->where('sales.branch_id', $branchId));
 
-        $revenueExpr = '(sale_items.unit_price * sale_items.quantity - sale_items.discount_amount)';
-        $costExpr = '(sale_items.cost_price * sale_items.quantity)';
+        $revenueExpr = '(sale_items.unit_price * sale_items.quantity / sale_items.price_divisor - sale_items.discount_amount)';
+        $costExpr = '(sale_items.cost_price * sale_items.quantity / sale_items.price_divisor)';
 
         if ($groupBy === 'none') {
             $totals = (clone $base)->selectRaw("COALESCE(SUM({$revenueExpr}), 0) as revenue, COALESCE(SUM({$costExpr}), 0) as cost")->first();

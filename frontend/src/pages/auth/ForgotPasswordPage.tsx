@@ -29,12 +29,12 @@ export function ForgotPasswordPage() {
         alignItems: 'center',
         justifyContent: 'center',
         p: 2,
-        background: 'radial-gradient(circle at 15% 15%, #DCFCE7 0%, #F0FDF4 35%, #ECFDF5 100%)',
+        background: 'radial-gradient(circle at 15% 15%, #DBEAFE 0%, #EFF6FF 35%, #EFF6FF 100%)',
       }}
     >
       <Paper
         elevation={0}
-        sx={{ p: 5, width: '100%', maxWidth: 420, borderRadius: 4, boxShadow: '0 30px 60px -20px rgba(6, 78, 59, 0.35)' }}
+        sx={{ p: 5, width: '100%', maxWidth: 420, borderRadius: 4, boxShadow: '0 30px 60px -20px rgba(30, 58, 138, 0.35)' }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 3 }}>
           <Box
@@ -45,11 +45,11 @@ export function ForgotPasswordPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(135deg, #34D399 0%, #059669 100%)',
-              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.45)',
+              background: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 100%)',
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.45)',
             }}
           >
-            <StorefrontRounded sx={{ color: '#052E20', fontSize: 20 }} />
+            <StorefrontRounded sx={{ color: '#0B1A3A', fontSize: 20 }} />
           </Box>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             Dukani
@@ -79,8 +79,8 @@ export function ForgotPasswordPage() {
                   fontWeight: 700,
                   textTransform: 'none',
                   fontSize: 15,
-                  background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-                  '&:hover': { background: 'linear-gradient(135deg, #047857 0%, #059669 100%)' },
+                  background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+                  '&:hover': { background: 'linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)' },
                 }}
               >
                 Send reset link
@@ -90,7 +90,7 @@ export function ForgotPasswordPage() {
         )}
 
         <Typography variant="body2" sx={{ mt: 3, textAlign: 'center' }} color="text.secondary">
-          <Link to="/login" style={{ color: '#059669', fontWeight: 600, textDecoration: 'none' }}>
+          <Link to="/login" style={{ color: '#2563EB', fontWeight: 600, textDecoration: 'none' }}>
             Back to sign in
           </Link>
         </Typography>

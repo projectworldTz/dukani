@@ -66,7 +66,7 @@ export function RegisterPage() {
         justifyContent: 'center',
         p: { xs: 1, sm: 2 },
         py: { xs: 1, sm: 4 },
-        background: 'radial-gradient(circle at 15% 15%, #DCFCE7 0%, #F0FDF4 35%, #ECFDF5 100%)',
+        background: 'radial-gradient(circle at 15% 15%, #DBEAFE 0%, #EFF6FF 35%, #EFF6FF 100%)',
       }}
     >
       <Paper
@@ -77,7 +77,7 @@ export function RegisterPage() {
           maxWidth: 1000,
           borderRadius: 4,
           overflow: 'hidden',
-          boxShadow: '0 30px 60px -20px rgba(6, 78, 59, 0.35)',
+          boxShadow: '0 30px 60px -20px rgba(30, 58, 138, 0.35)',
         }}
       >
         {/* Branding panel */}
@@ -90,8 +90,8 @@ export function RegisterPage() {
             p: 5,
             position: 'relative',
             overflow: 'hidden',
-            color: '#ECFDF5',
-            background: 'linear-gradient(160deg, #0B3D2E 0%, #065F46 45%, #059669 100%)',
+            color: '#EFF6FF',
+            background: 'linear-gradient(160deg, #0F2350 0%, #1E40AF 45%, #2563EB 100%)',
           }}
         >
           <Box
@@ -100,7 +100,7 @@ export function RegisterPage() {
               width: 320,
               height: 320,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(52,211,153,0.35) 0%, rgba(52,211,153,0) 70%)',
+              background: 'radial-gradient(circle, rgba(96, 165, 250,0.35) 0%, rgba(96, 165, 250,0) 70%)',
               top: -120,
               right: -100,
             }}
@@ -111,7 +111,7 @@ export function RegisterPage() {
               width: 260,
               height: 260,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(163,230,53,0.18) 0%, rgba(163,230,53,0) 70%)',
+              background: 'radial-gradient(circle, rgba(251, 191, 36,0.18) 0%, rgba(251, 191, 36,0) 70%)',
               bottom: -80,
               left: -60,
             }}
@@ -127,11 +127,11 @@ export function RegisterPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: 'linear-gradient(135deg, #34D399 0%, #A7F3D0 100%)',
-                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.45)',
+                  background: 'linear-gradient(135deg, #60A5FA 0%, #BFDBFE 100%)',
+                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.45)',
                 }}
               >
-                <StorefrontRounded sx={{ color: '#052E20', fontSize: 22 }} />
+                <StorefrontRounded sx={{ color: '#0B1A3A', fontSize: 22 }} />
               </Box>
               <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: 0.3 }}>
                 Dukani
@@ -141,7 +141,7 @@ export function RegisterPage() {
             <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.25, mb: 1.5 }}>
               Start selling in minutes.
             </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(209, 250, 229, 0.8)' }}>
+            <Typography variant="body2" sx={{ color: 'rgba(219, 234, 254, 0.8)' }}>
               Create your business account and get a fully working POS, inventory, and reporting system instantly.
             </Typography>
           </Box>
@@ -158,13 +158,13 @@ export function RegisterPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     bgcolor: 'rgba(255,255,255,0.12)',
-                    color: '#A7F3D0',
+                    color: '#BFDBFE',
                     flexShrink: 0,
                   }}
                 >
                   {h.icon}
                 </Box>
-                <Typography variant="body2" sx={{ color: 'rgba(236, 253, 245, 0.92)' }}>
+                <Typography variant="body2" sx={{ color: 'rgba(239, 246, 255, 0.92)' }}>
                   {h.text}
                 </Typography>
               </Stack>
@@ -216,6 +216,18 @@ export function RegisterPage() {
                     </MenuItem>
                   ))}
                 </TextField>
+                {category === 'Pharmacy & Health' && (
+                  <Alert severity="success" icon={false} sx={{ bgcolor: '#F0FDFA', border: '1px solid #99F6E4' }}>
+                    <strong>You'll get Dukani Pharmacy</strong> — built for medicines: batch &amp; expiry tracking (sells nearest expiry first), prescription records,
+                    dosage labels on receipts and a controlled drugs register.
+                  </Alert>
+                )}
+                {category === 'Butchery & Fresh Foods' && (
+                  <Alert severity="success" icon={false} sx={{ bgcolor: '#FFF1F2', border: '1px solid #FECDD3' }}>
+                    <strong>You'll get Dukani Butchery</strong> — sell by weight (kg) or by amount, a daily price board, carcass cutting with
+                    yield and real cost per kg, and waste tracking.
+                  </Alert>
+                )}
                 {category === 'Other' && (
                   <TextField
                     label="Tell us what kind of business"
@@ -266,9 +278,9 @@ export function RegisterPage() {
                     fontWeight: 700,
                     textTransform: 'none',
                     fontSize: 15,
-                    background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-                    boxShadow: '0 8px 20px -6px rgba(5, 150, 105, 0.55)',
-                    '&:hover': { background: 'linear-gradient(135deg, #047857 0%, #059669 100%)' },
+                    background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+                    boxShadow: '0 8px 20px -6px rgba(29, 78, 216, 0.55)',
+                    '&:hover': { background: 'linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)' },
                   }}
                 >
                   Create business
@@ -278,7 +290,7 @@ export function RegisterPage() {
 
             <Typography variant="body2" sx={{ mt: 3, textAlign: 'center' }} color="text.secondary">
               Already have an account?{' '}
-              <Link to="/login" style={{ color: '#059669', fontWeight: 600, textDecoration: 'none' }}>
+              <Link to="/login" style={{ color: '#2563EB', fontWeight: 600, textDecoration: 'none' }}>
                 Sign in
               </Link>
             </Typography>

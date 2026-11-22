@@ -34,7 +34,8 @@ export const authApi = {
   register: (payload: RegisterPayload) => api.post<AuthResponse>('/auth/register', payload).then((r) => r.data),
   login: (payload: LoginPayload) => api.post<AuthResponse>('/auth/login', payload).then((r) => r.data),
   logout: () => api.post('/auth/logout'),
-  me: () => api.get<AuthUser>('/auth/me').then((r) => r.data),
+  // JsonResource responses are wrapped in `data` unless wrapping is disabled server-side.
+  me: () => api.get<AuthUser | { data: AuthUser }>('/auth/me').then((r) => ('data' in r.data ? r.data.data : r.data)),
   forgotPassword: (email: string) => api.post<{ message: string }>('/auth/forgot-password', { email }).then((r) => r.data),
   resetPassword: (payload: { email: string; token: string; password: string; password_confirmation: string }) =>
     api.post<{ message: string }>('/auth/reset-password', payload).then((r) => r.data),

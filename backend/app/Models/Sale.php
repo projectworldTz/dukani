@@ -60,6 +60,11 @@ class Sale extends Model
         return $this->belongsTo(CashierShift::class, 'shift_id');
     }
 
+    public function prescription(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Prescription::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(SaleItem::class);

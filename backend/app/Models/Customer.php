@@ -37,12 +37,14 @@ class Customer extends Model
     /** Total owed across all not-fully-paid completed sales — this is the "credit" spec §23 tracks. */
     public function outstandingBalance(): float
     {
-        $totals = $this->sales()
+        // Per sale, only the unpaid part counts: cash handed over beyond the total came
+        // back as change, so it must never show up as credit in the customer's favour.
+        $owed = $this->sales()
             ->whereIn('status', ['completed', 'partially_refunded'])
-            ->selectRaw('COALESCE(SUM(grand_total), 0) as billed, COALESCE(SUM(amount_paid), 0) as paid')
-            ->first();
+            ->selectRaw('COALESCE(SUM(CASE WHEN grand_total > amount_paid THEN grand_total - amount_paid ELSE 0 END), 0) as owed')
+            ->value('owed');
 
-        return (float) $totals->billed - (float) $totals->paid;
+        return round((float) $owed, 2);
     }
 
     public function availableCredit(): float

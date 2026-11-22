@@ -28,12 +28,12 @@ export function VerifyEmailPage() {
         alignItems: 'center',
         justifyContent: 'center',
         p: 2,
-        background: 'radial-gradient(circle at 15% 15%, #DCFCE7 0%, #F0FDF4 35%, #ECFDF5 100%)',
+        background: 'radial-gradient(circle at 15% 15%, #DBEAFE 0%, #EFF6FF 35%, #EFF6FF 100%)',
       }}
     >
       <Paper
         elevation={0}
-        sx={{ p: 5, width: '100%', maxWidth: 420, borderRadius: 4, boxShadow: '0 30px 60px -20px rgba(6, 78, 59, 0.35)', textAlign: 'center' }}
+        sx={{ p: 5, width: '100%', maxWidth: 420, borderRadius: 4, boxShadow: '0 30px 60px -20px rgba(30, 58, 138, 0.35)', textAlign: 'center' }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.25, mb: 3 }}>
           <Box
@@ -44,11 +44,11 @@ export function VerifyEmailPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(135deg, #34D399 0%, #059669 100%)',
-              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.45)',
+              background: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 100%)',
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.45)',
             }}
           >
-            <StorefrontRounded sx={{ color: '#052E20', fontSize: 20 }} />
+            <StorefrontRounded sx={{ color: '#0B1A3A', fontSize: 20 }} />
           </Box>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             Dukani
@@ -64,14 +64,14 @@ export function VerifyEmailPage() {
           </>
         ) : mutation.isPending || mutation.isIdle ? (
           <>
-            <CircularProgress size={40} sx={{ color: '#10B981', mb: 2 }} />
+            <CircularProgress size={40} sx={{ color: '#3B82F6', mb: 2 }} />
             <Typography variant="body2" color="text.secondary">
               Verifying your email…
             </Typography>
           </>
         ) : mutation.isSuccess ? (
           <>
-            <CheckCircleRounded sx={{ fontSize: 48, color: '#059669', mb: 1 }} />
+            <CheckCircleRounded sx={{ fontSize: 48, color: '#2563EB', mb: 1 }} />
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
               Email verified
             </Typography>

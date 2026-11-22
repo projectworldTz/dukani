@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\StockTransfer;
 use App\Models\User;
 use App\Services\Inventory\StockMovementService;
+use App\Services\Pharmacy\PharmacyStockService;
 use App\Services\Shared\DocumentNumberService;
 use App\Support\Tenancy\BusinessContext;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,7 @@ class StockTransferService
     public function __construct(
         private DocumentNumberService $numberService,
         private StockMovementService $stockMovementService,
+        private PharmacyStockService $pharmacyStockService,
     ) {}
 
     /** @param  array<int,array{product_id:int,quantity:int}>  $items */
@@ -76,15 +78,28 @@ class StockTransferService
         $this->assertStatus($transfer, 'approved');
 
         return DB::transaction(function () use ($transfer, $user) {
+            $isPharmacy = $user->business->isPharmacy();
             foreach ($transfer->items as $item) {
+                $product = Product::findOrFail($item->product_id);
+
+                // Pharmacy: send the nearest-expiry batches and remember them, so the
+                // receiving branch gets the same batch numbers and expiry dates.
+                if ($isPharmacy && $product->has_batch) {
+                    $item->update(['batches' => $this->pharmacyStockService->takeFromBatches($product->id, $transfer->from_branch_id, (int) $item->quantity, null, preferExpired: false)]);
+                }
+
                 $this->stockMovementService->adjust(
-                    product: Product::findOrFail($item->product_id),
+                    product: $product,
                     branchId: $transfer->from_branch_id,
                     quantityChange: -$item->quantity,
                     type: 'transfer_out',
                     reference: $transfer,
                     userId: $user->id,
                 );
+
+                if ($isPharmacy && $product->is_controlled) {
+                    $this->pharmacyStockService->register($product, $transfer->from_branch_id, 'adjusted', out: (int) $item->quantity, reference: "Transfer {$transfer->transfer_number} out", userId: $user->id);
+                }
             }
 
             $transfer->update(['status' => 'in_transit', 'dispatched_at' => now()]);
@@ -98,15 +113,26 @@ class StockTransferService
         $this->assertStatus($transfer, 'in_transit');
 
         return DB::transaction(function () use ($transfer, $user) {
+            $isPharmacy = $user->business->isPharmacy();
             foreach ($transfer->items as $item) {
+                $product = Product::findOrFail($item->product_id);
+
+                foreach ($isPharmacy ? ($item->batches ?? []) : [] as $sent) {
+                    $this->pharmacyStockService->addToBatch($product, $transfer->to_branch_id, $sent['batch_number'], $sent['expiry_date'] ?? null, (int) $sent['quantity']);
+                }
+
                 $this->stockMovementService->adjust(
-                    product: Product::findOrFail($item->product_id),
+                    product: $product,
                     branchId: $transfer->to_branch_id,
                     quantityChange: $item->quantity,
                     type: 'transfer_in',
                     reference: $transfer,
                     userId: $user->id,
                 );
+
+                if ($isPharmacy && $product->is_controlled) {
+                    $this->pharmacyStockService->register($product, $transfer->to_branch_id, 'received', in: (int) $item->quantity, reference: "Transfer {$transfer->transfer_number} in", userId: $user->id);
+                }
             }
 
             $transfer->update(['status' => 'received', 'received_by' => $user->id, 'received_at' => now()]);

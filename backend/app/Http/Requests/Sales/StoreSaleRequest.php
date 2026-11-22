@@ -32,6 +32,19 @@ class StoreSaleRequest extends FormRequest
             'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('business_id', $businessId)],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'items.*.dosage_instructions' => ['nullable', 'string', 'max:255'],
+
+            // Pharmacy: required by SaleService when the cart has prescription-only medicines.
+            'prescription' => ['nullable', 'array'],
+            'prescription.rx_number' => ['nullable', 'string', 'max:100'],
+            'prescription.prescriber_name' => ['nullable', 'string', 'max:255'],
+            'prescription.prescriber_reg_no' => ['nullable', 'string', 'max:100'],
+            'prescription.facility' => ['nullable', 'string', 'max:255'],
+            'prescription.issued_on' => ['nullable', 'date', 'before_or_equal:today'],
+            'prescription.patient_name' => ['nullable', 'string', 'max:255'],
+            'prescription.patient_age' => ['nullable', 'integer', 'min:0', 'max:130'],
+            'prescription.patient_phone' => ['nullable', 'string', 'max:30'],
+            'prescription.notes' => ['nullable', 'string', 'max:1000'],
 
             'payments' => ['exclude_if:hold,true', 'present', 'array'],
             'payments.*.payment_method_id' => ['required_with:payments', 'integer', Rule::exists('payment_methods', 'id')->where('business_id', $businessId)],

@@ -9,6 +9,7 @@ use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
 use App\Models\User;
 use App\Services\Inventory\StockMovementService;
+use App\Services\Pharmacy\PharmacyStockService;
 use App\Services\Shared\DocumentNumberService;
 use App\Support\Tenancy\BusinessContext;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,7 @@ class SaleReturnService
     public function __construct(
         private DocumentNumberService $numberService,
         private StockMovementService $stockMovementService,
+        private PharmacyStockService $pharmacyStockService,
     ) {}
 
     /** @param  array<int,array{sale_item_id:int,quantity:int,condition:string}>  $lines */
@@ -80,7 +82,11 @@ class SaleReturnService
                     'condition' => $condition,
                 ]);
 
-                if ($condition === 'sellable' && $saleItem->product_id) {
+                $returnedProduct = $saleItem->product_id ? Product::find($saleItem->product_id) : null;
+                if ($condition === 'sellable' && $returnedProduct && $returnedProduct->has_batch && $user->business->isPharmacy()) {
+                    // Back into the same batches it was dispensed from.
+                    $this->pharmacyStockService->restoreReturn($saleItem, $returnedProduct, $quantity, $sale, $return, $reason, $user->id);
+                } elseif ($condition === 'sellable' && $saleItem->product_id) {
                     $this->stockMovementService->adjust(
                         product: Product::findOrFail($saleItem->product_id),
                         branchId: $sale->branch_id,

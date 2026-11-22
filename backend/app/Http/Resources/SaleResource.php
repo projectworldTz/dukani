@@ -34,10 +34,21 @@ class SaleResource extends JsonResource
                 'product_name' => $item->product_name,
                 'sku' => $item->sku,
                 'quantity' => $item->quantity,
+                // 1000 = quantity is in grams and unit_price is per kg (weighed item).
+                'price_divisor' => (int) ($item->price_divisor ?? 1),
                 'unit_price' => $item->unit_price,
                 'discount_amount' => $item->discount_amount,
                 'tax_amount' => $item->tax_amount,
                 'line_total' => $item->line_total,
+                'dosage_instructions' => $item->dosage_instructions,
+                'batches' => $item->relationLoaded('batches') ? $item->batches->map(fn ($b) => [
+                    'batch_number' => $b->batch_number,
+                    'expiry_date' => $b->expiry_date?->toDateString(),
+                    'quantity' => $b->quantity,
+                ])->values() : [],
+            ])),
+            'prescription' => $this->whenLoaded('prescription', fn () => $this->prescription?->only([
+                'rx_number', 'prescriber_name', 'prescriber_reg_no', 'facility', 'issued_on', 'patient_name', 'patient_age', 'patient_phone', 'notes',
             ])),
             'payments' => $this->whenLoaded('payments', fn () => $this->payments->map(fn ($p) => [
                 'payment_method' => $p->paymentMethod?->name,

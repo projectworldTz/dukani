@@ -45,6 +45,8 @@ export interface TrendPoint {
   date: string
   revenue: number
   profit: number
+  /** Number of completed sales that day (or month). */
+  orders?: number
 }
 
 export interface TopProductRow {

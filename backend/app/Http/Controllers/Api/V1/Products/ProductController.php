@@ -27,11 +27,35 @@ class ProductController extends Controller
             ->when($request->filled('search'), fn ($q) => $q->where(function ($q) use ($request) {
                 $term = '%'.$request->string('search').'%';
                 $q->where('name', 'like', $term)
+                    ->orWhere('generic_name', 'like', $term)
                     ->orWhere('sku', 'like', $term)
                     ->orWhereHas('barcodes', fn ($q) => $q->where('code', 'like', $term));
             }))
+            // Pharmacy: expired units (can't be sold) and the nearest upcoming expiry per medicine.
+            ->when($request->filled('branch_id') && $request->user()->business->isPharmacy(), function ($q) use ($request) {
+                $branchId = $request->integer('branch_id');
+                $today = now($request->user()->business->timezone)->toDateString();
+                $q->withSum(['batches as expired_stock' => fn ($b) => $b->where('branch_id', $branchId)->where('quantity_remaining', '>', 0)->where('expiry_date', '<', $today)], 'quantity_remaining')
+                    ->withMin(['batches as nearest_expiry' => fn ($b) => $b->where('branch_id', $branchId)->where('quantity_remaining', '>', 0)->where('expiry_date', '>=', $today)], 'expiry_date');
+            })
+            ->when($request->filled('branch_id') && in_array($request->input('expiry'), ['expired', 'expiring'], true), function ($q) use ($request) {
+                $branchId = $request->integer('branch_id');
+                $today = now($request->user()->business->timezone);
+                $q->whereHas('batches', fn ($b) => $b->where('branch_id', $branchId)->where('quantity_remaining', '>', 0)
+                    ->when($request->input('expiry') === 'expired',
+                        fn ($b) => $b->where('expiry_date', '<', $today->toDateString()),
+                        fn ($b) => $b->whereBetween('expiry_date', [$today->toDateString(), $today->copy()->addDays($request->integer('within_days', 90))->toDateString()])));
+            })
             ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->integer('category_id')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+            ->when($request->filled('branch_id') && in_array($request->input('stock'), ['low', 'out'], true), function ($q) use ($request) {
+                $branchId = $request->integer('branch_id');
+                $stockSql = '(SELECT COALESCE(SUM(quantity), 0) FROM inventories WHERE inventories.product_id = products.id AND inventories.branch_id = ?)';
+
+                $request->input('stock') === 'out'
+                    ? $q->whereRaw("{$stockSql} <= 0", [$branchId])
+                    : $q->whereRaw("{$stockSql} > 0 AND {$stockSql} <= products.reorder_level", [$branchId, $branchId]);
+            })
             ->orderBy('name')
             ->paginate(min(max($request->integer('per_page', 20), 1), 100));
 

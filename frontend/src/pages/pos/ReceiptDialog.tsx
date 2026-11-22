@@ -1,10 +1,11 @@
-import { Email, ExpandMore, Print } from '@mui/icons-material'
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { CheckCircleRounded, Email, ExpandLess, ExpandMore, Print } from '@mui/icons-material'
+import { Alert, Box, Button, Collapse, Dialog, DialogActions, DialogContent, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { useMutation } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { salesApi } from '../../api/endpoints/sales'
 import { useToastStore } from '../../stores/toastStore'
 import type { Sale } from '../../types'
+import { money } from './posUtils'
 
 interface Props {
   sale: Sale | null
@@ -50,51 +51,93 @@ export function ReceiptDialog({ sale, onClose, onFiscalized }: Props) {
 
   if (!sale) return null
 
+  const change = Number(sale.change_amount)
+  const owed = Number(sale.outstanding_balance ?? 0)
+
   return (
-    <Dialog open={!!sale} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Sale completed</DialogTitle>
-      <DialogContent>
-        <Alert severity="success" sx={{ mb: 2 }}>
-          Receipt <strong>{sale.receipt_number}</strong> has been recorded successfully.
-        </Alert>
+    <Dialog open={!!sale} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogContent sx={{ textAlign: 'center', pt: 4 }}>
+        <CheckCircleRounded color="success" sx={{ fontSize: 72 }} />
+        <Typography variant="h5" sx={{ fontWeight: 800 }}>
+          Sale complete
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 2.5 }}>
+          Receipt {sale.receipt_number} · {sale.currency} {money(Number(sale.grand_total))}
+        </Typography>
+
+        {change > 0 && (
+          <Box sx={{ p: 2, mb: 2, borderRadius: 3, bgcolor: '#ECFDF5', border: '1px solid', borderColor: 'success.light' }}>
+            <Typography variant="body2" color="success.dark" sx={{ fontWeight: 600 }}>
+              Give change
+            </Typography>
+            <Typography sx={{ fontWeight: 850, fontSize: '2.4rem', color: 'success.dark', lineHeight: 1.15 }}>
+              {sale.currency} {money(change)}
+            </Typography>
+          </Box>
+        )}
+        {owed > 0 && (
+          <Alert severity="info" sx={{ mb: 2, textAlign: 'left' }}>
+            {sale.currency} {money(owed)} was added to {sale.customer_name ?? 'the customer'}'s account.
+          </Alert>
+        )}
+        {sale.loyalty_points_earned ? (
+          <Typography variant="body2" color="success.main" sx={{ mb: 2, fontWeight: 600 }}>
+            Customer earned {sale.loyalty_points_earned} loyalty point{sale.loyalty_points_earned === 1 ? '' : 's'}.
+          </Typography>
+        ) : null}
+
         {sale.fiscal_status === 'failed' && (
-          <Alert severity="warning" sx={{ mb: 2 }} action={
-            <Button color="inherit" size="small" loading={fiscalizeMutation.isPending} onClick={() => fiscalizeMutation.mutate()}>
-              Retry EFD
-            </Button>
-          }>The sale was saved, but the EFD gateway did not fiscalize it. This printout is marked non-fiscal; retry before issuing it as a tax receipt.</Alert>
+          <Alert
+            severity="warning"
+            sx={{ mb: 2, textAlign: 'left' }}
+            action={
+              <Button color="inherit" size="small" loading={fiscalizeMutation.isPending} onClick={() => fiscalizeMutation.mutate()}>
+                Retry EFD
+              </Button>
+            }
+          >
+            The sale was saved, but the EFD gateway did not fiscalize it. This printout is marked non-fiscal; retry before issuing it as a tax receipt.
+          </Alert>
         )}
         {sale.fiscal_status === 'fiscalized' && (
-          <Alert severity="info" sx={{ mb: 2 }}>TRA fiscal receipt {sale.fiscal_receipt_number} · verification {sale.fiscal_verification_code}</Alert>
+          <Alert severity="info" sx={{ mb: 2, textAlign: 'left' }}>
+            TRA fiscal receipt {sale.fiscal_receipt_number} · verification {sale.fiscal_verification_code}
+          </Alert>
         )}
-        <Typography variant="body2" color="text.secondary">Change due</Typography>
-        <Typography variant="h3" sx={{ fontWeight: 850, mb: 2, fontSize: { xs: '2rem', sm: '3rem' }, overflowWrap: 'anywhere' }}>{sale.currency} {Number(sale.change_amount).toLocaleString()}</Typography>
 
-        <Button endIcon={<ExpandMore />} size="small" onClick={() => setShowOptions((shown) => !shown)}>
-          {showOptions ? 'Hide receipt options' : 'More receipt options'}
+        <Button size="small" endIcon={showOptions ? <ExpandLess /> : <ExpandMore />} onClick={() => setShowOptions((shown) => !shown)}>
+          Email receipt or change paper size
         </Button>
-        {showOptions && (
-          <Stack spacing={1.5} sx={{ mt: 1.5 }}>
-            <TextField select label="Paper size" size="small" value={paper} onChange={(e) => {
-              setLoading(true)
-              setPaper(e.target.value as '58mm' | '80mm' | 'a4')
-            }} sx={{ width: { xs: '100%', sm: 180 } }}>
-              <MenuItem value="58mm">58mm thermal</MenuItem>
-              <MenuItem value="80mm">80mm thermal</MenuItem>
-              <MenuItem value="a4">A4</MenuItem>
+        <Collapse in={showOptions}>
+          <Stack spacing={1.5} sx={{ mt: 1.5, textAlign: 'left' }}>
+            <TextField
+              select
+              label="Paper size"
+              size="small"
+              value={paper}
+              onChange={(e) => {
+                setLoading(true)
+                setPaper(e.target.value as '58mm' | '80mm' | 'a4')
+              }}
+            >
+              <MenuItem value="58mm">58mm receipt printer</MenuItem>
+              <MenuItem value="80mm">80mm receipt printer</MenuItem>
+              <MenuItem value="a4">A4 paper</MenuItem>
             </TextField>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <Stack direction="row" spacing={1}>
               <TextField label="Customer email" size="small" type="email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
-              <Button variant="outlined" startIcon={<Email />} disabled={!email} loading={emailMutation.isPending} onClick={() => emailMutation.mutate()}>Email</Button>
+              <Button variant="outlined" startIcon={<Email />} disabled={!email} loading={emailMutation.isPending} onClick={() => emailMutation.mutate()}>
+                Send
+              </Button>
             </Stack>
           </Stack>
-        )}
+        </Collapse>
       </DialogContent>
-      <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: 2, '& > button': { flex: { xs: '1 1 100%', sm: '0 0 auto' } } }}>
-        <Button onClick={onClose}>No receipt · New sale</Button>
+      <DialogActions sx={{ px: 3, pb: 3, flexDirection: 'column', gap: 1, '& > :not(style) ~ :not(style)': { ml: 0 } }}>
         <Button
           variant="contained"
           size="large"
+          fullWidth
           startIcon={<Print />}
           disabled={!blobUrl || loading}
           onClick={() => {
@@ -102,8 +145,12 @@ export function ReceiptDialog({ sale, onClose, onFiscalized }: Props) {
             win?.print()
             onClose()
           }}
+          sx={{ py: 1.25, fontSize: 16 }}
         >
-          Print · New sale
+          Print receipt
+        </Button>
+        <Button variant="outlined" size="large" fullWidth onClick={onClose} autoFocus sx={{ py: 1.25, fontSize: 16 }}>
+          New sale (no receipt)
         </Button>
       </DialogActions>
     </Dialog>

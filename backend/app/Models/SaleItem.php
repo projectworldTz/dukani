@@ -18,6 +18,7 @@ class SaleItem extends Model
     protected $fillable = [
         'business_id', 'sale_id', 'product_id', 'product_name', 'sku',
         'quantity', 'unit_price', 'cost_price', 'discount_amount', 'tax_amount', 'line_total',
+        'dosage_instructions', 'price_divisor',
     ];
 
     protected function casts(): array
@@ -29,6 +30,11 @@ class SaleItem extends Model
             'tax_amount' => 'decimal:2',
             'line_total' => 'decimal:2',
         ];
+    }
+
+    public function batches(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(SaleItemBatch::class);
     }
 
     public function sale(): BelongsTo

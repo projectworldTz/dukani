@@ -17,6 +17,7 @@ class Product extends Model
     protected $fillable = [
         'business_id', 'uuid', 'category_id', 'brand_id', 'unit_id', 'supplier_id',
         'name', 'description', 'sku', 'image_path',
+        'generic_name', 'strength', 'dosage_form', 'pack_size', 'manufacturer', 'requires_prescription', 'is_controlled', 'sold_by_weight',
         'cost_price', 'selling_price', 'wholesale_price', 'minimum_selling_price',
         'tax_rate', 'is_tax_inclusive', 'discount_percent',
         'reorder_level', 'max_stock_level', 'shelf_location',
@@ -36,6 +37,9 @@ class Product extends Model
             'has_expiry' => 'boolean',
             'has_batch' => 'boolean',
             'has_serial' => 'boolean',
+            'requires_prescription' => 'boolean',
+            'is_controlled' => 'boolean',
+            'sold_by_weight' => 'boolean',
         ];
     }
 
@@ -74,5 +78,10 @@ class Product extends Model
     public function inventories(): HasMany
     {
         return $this->hasMany(Inventory::class);
+    }
+
+    public function batches(): HasMany
+    {
+        return $this->hasMany(ProductBatch::class);
     }
 }

@@ -33,6 +33,9 @@ class AuthenticatedUserResource extends JsonResource
                 'slug' => $this->business->slug,
                 'currency' => $this->business->currency,
                 'timezone' => $this->business->timezone,
+                'advanced_features' => (bool) $this->business->settings?->advanced_features,
+                'category' => $this->business->category,
+                'platform' => $this->business->platform(),
             ]),
         ];
     }

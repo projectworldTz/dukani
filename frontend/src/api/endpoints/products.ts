@@ -7,7 +7,16 @@ interface Paginated<T> {
 }
 
 export const productsApi = {
-  list: (params?: { search?: string; category_id?: number; status?: string; branch_id?: number; page?: number }) =>
+  list: (params?: {
+    search?: string
+    category_id?: number
+    status?: string
+    branch_id?: number
+    stock?: 'low' | 'out'
+    expiry?: 'expired' | 'expiring'
+    page?: number
+    per_page?: number
+  }) =>
     api.get<Paginated<Product>>('/products', { params }).then((r) => r.data),
   create: (data: FormData) =>
     api.post<Product>('/products', data, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data),

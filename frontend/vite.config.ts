@@ -14,7 +14,7 @@ export default defineConfig({
         name: 'Dukani',
         short_name: 'Dukani',
         description: 'Dukani — smarter sales, better business. Point of sale and inventory management.',
-        theme_color: '#166534',
+        theme_color: '#2563EB',
         background_color: '#f6f7f9',
         display: 'standalone',
         orientation: 'portrait',

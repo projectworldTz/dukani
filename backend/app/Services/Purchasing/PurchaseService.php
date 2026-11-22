@@ -9,6 +9,7 @@ use App\Models\PurchaseItem;
 use App\Models\SupplierPayment;
 use App\Models\User;
 use App\Services\Inventory\StockMovementService;
+use App\Services\Pharmacy\PharmacyStockService;
 use App\Services\Shared\DocumentNumberService;
 use App\Support\Tenancy\BusinessContext;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,7 @@ class PurchaseService
     public function __construct(
         private DocumentNumberService $numberService,
         private StockMovementService $stockMovementService,
+        private PharmacyStockService $pharmacyStockService,
     ) {}
 
     public function create(array $data, User $user): Purchase
@@ -90,6 +92,7 @@ class PurchaseService
                 }
 
                 $product = Product::findOrFail($item->product_id);
+                $batch = null;
 
                 $this->stockMovementService->adjust(
                     product: $product,
@@ -117,6 +120,13 @@ class PurchaseService
                         'quantity_received' => ($batch->quantity_received ?? 0) + $quantity,
                         'quantity_remaining' => ($batch->quantity_remaining ?? 0) + $quantity,
                     ])->save();
+                }
+
+                if ($user->business->isPharmacy() && $product->is_controlled) {
+                    $this->pharmacyStockService->register(
+                        $product, $purchase->branch_id, 'received', in: $quantity, batch: $batch,
+                        reference: "Purchase {$purchase->purchase_number}".(! empty($receipt['batch_number']) ? " · Batch {$receipt['batch_number']}" : ''), userId: $user->id,
+                    );
                 }
             }
 

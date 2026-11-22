@@ -2,8 +2,11 @@
 
 namespace App\Services\Products;
 
+use App\Models\Branch;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Inventory\StockMovementService;
+use App\Services\Pharmacy\PharmacyStockService;
 use App\Support\Tenancy\BusinessContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -13,13 +16,20 @@ use Intervention\Image\Laravel\Facades\Image;
 
 class ProductService
 {
-    public function __construct(private BarcodeSequenceService $barcodeSequenceService) {}
+    public function __construct(
+        private BarcodeSequenceService $barcodeSequenceService,
+        private StockMovementService $stockMovementService,
+        private PharmacyStockService $pharmacyStockService,
+    ) {}
 
     public function create(array $data, User $creator, ?UploadedFile $image = null): Product
     {
         return DB::transaction(function () use ($data, $creator, $image) {
+            $isPharmacy = $creator->business->isPharmacy();
             $product = Product::create([
                 ...$this->fillable($data),
+                // Every medicine is tracked by batch and expiry on the pharmacy platform.
+                ...($isPharmacy ? ['has_batch' => true, 'has_expiry' => true] : []),
                 'business_id' => BusinessContext::id(),
                 'created_by' => $creator->id,
             ]);
@@ -34,6 +44,29 @@ class ProductService
                 );
             } elseif (! empty($data['generate_barcode'])) {
                 $this->barcodeSequenceService->generateInternal($product, $creator->business, true);
+            }
+
+            $openingStock = (int) ($data['opening_stock'] ?? 0);
+            if ($openingStock > 0) {
+                $branchId = $data['branch_id']
+                    ?? $creator->staffProfile?->branch_id
+                    ?? Branch::orderByDesc('is_main')->orderBy('id')->value('id');
+
+                if ($branchId && $isPharmacy) {
+                    $this->pharmacyStockService->receive(
+                        $product, (int) $branchId, $openingStock, trim($data['opening_batch_number']), $data['opening_expiry_date'],
+                        'opening_stock', 'Opening stock', $creator->id,
+                    );
+                } elseif ($branchId) {
+                    $this->stockMovementService->adjust(
+                        product: $product,
+                        branchId: (int) $branchId,
+                        quantityChange: $openingStock,
+                        type: 'opening_stock',
+                        reason: 'Opening stock',
+                        userId: $creator->id,
+                    );
+                }
             }
 
             return $product->load('barcodes', 'category', 'brand', 'unit');
@@ -62,6 +95,8 @@ class ProductService
             'tax_rate', 'is_tax_inclusive', 'discount_percent',
             'reorder_level', 'max_stock_level', 'shelf_location',
             'has_expiry', 'has_batch', 'has_serial', 'status',
+            'generic_name', 'strength', 'dosage_form', 'pack_size', 'manufacturer', 'requires_prescription', 'is_controlled',
+            'sold_by_weight',
         ]));
     }
 

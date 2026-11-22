@@ -17,7 +17,9 @@ class ShiftController extends Controller
     {
         $shift = CashierShift::where('user_id', $request->user()->id)->where('status', 'open')->first();
 
-        return $shift ?? response()->json(null);
+        // response()->json(null) serializes to "{}" (truthy in JS), which made the POS
+        // think a shift was open. Send a literal JSON null instead.
+        return $shift ?? response('null', 200, ['Content-Type' => 'application/json']);
     }
 
     public function open(OpenShiftRequest $request)

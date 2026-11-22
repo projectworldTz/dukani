@@ -8,6 +8,7 @@ use App\Models\PurchaseItem;
 use App\Models\PurchaseReturn;
 use App\Models\User;
 use App\Services\Inventory\StockMovementService;
+use App\Services\Pharmacy\PharmacyStockService;
 use App\Services\Shared\DocumentNumberService;
 use App\Support\Tenancy\BusinessContext;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ class PurchaseReturnService
     public function __construct(
         private DocumentNumberService $numberService,
         private StockMovementService $stockMovementService,
+        private PharmacyStockService $pharmacyStockService,
     ) {}
 
     /** @param  array<int,array{purchase_item_id:int,quantity:int}>  $lines */
@@ -56,8 +58,17 @@ class PurchaseReturnService
                     'line_total' => $lineTotal,
                 ]);
 
+                $product = Product::findOrFail($item->product_id);
+                $isPharmacy = $user->business->isPharmacy();
+
+                // Pharmacy: returned units leave their batches (expired first — the usual
+                // reason medicine goes back to the supplier).
+                if ($isPharmacy && $product->has_batch) {
+                    $this->pharmacyStockService->takeFromBatches($product->id, $purchase->branch_id, $quantity, null, preferExpired: true);
+                }
+
                 $this->stockMovementService->adjust(
-                    product: Product::findOrFail($item->product_id),
+                    product: $product,
                     branchId: $purchase->branch_id,
                     quantityChange: -$quantity,
                     type: 'purchase_return',
@@ -65,6 +76,10 @@ class PurchaseReturnService
                     reference: $return,
                     userId: $user->id,
                 );
+
+                if ($isPharmacy && $product->is_controlled) {
+                    $this->pharmacyStockService->register($product, $purchase->branch_id, 'removed', out: $quantity, reference: "Returned to supplier ({$return->return_number})", userId: $user->id);
+                }
             }
 
             $return->update(['total' => $total]);

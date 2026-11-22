@@ -76,7 +76,7 @@ export function LandingPage() {
                     height: '100%',
                     borderColor: isSelected ? 'primary.main' : undefined,
                     borderWidth: isSelected ? 2 : 1,
-                    bgcolor: isSelected ? 'rgba(22, 101, 52, 0.06)' : undefined,
+                    bgcolor: isSelected ? 'rgba(37, 99, 235, 0.06)' : undefined,
                   }}
                 >
                   <CardActionArea onClick={() => setSelected(category.value)} sx={{ p: 2, height: '100%' }}>

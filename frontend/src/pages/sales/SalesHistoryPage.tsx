@@ -21,10 +21,12 @@ import {
 import { Print } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { salesApi } from '../../api/endpoints/sales'
 import { ReceiptDialog } from '../pos/ReceiptDialog'
 import { useAuthStore } from '../../stores/authStore'
 import type { Sale } from '../../types'
+import { GRAMS_PER_KG, formatQty, kgToGrams } from '../../utils/quantity'
 
 const STATUS_COLORS: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
   held: 'default',
@@ -38,16 +40,61 @@ export function SalesHistoryPage() {
   const currency = useAuthStore((s) => s.user?.business?.currency ?? '')
   const canReturn = useAuthStore((s) => s.hasPermission('sales.return'))
   const [detailId, setDetailId] = useState<number | null>(null)
+  const [searchParams] = useSearchParams()
+  const [receiptSearch, setReceiptSearch] = useState(searchParams.get('receipt') ?? '')
 
-  const salesQuery = useQuery({ queryKey: ['sales', 'history'], queryFn: () => salesApi.list({ status: 'completed' }) })
+  const salesQuery = useQuery({
+    queryKey: ['sales', 'history', receiptSearch],
+    queryFn: () => salesApi.list({ status: receiptSearch ? undefined : 'completed', receipt_number: receiptSearch || undefined }),
+  })
 
   return (
     <Box>
-      <Typography variant="h5" sx={{ fontWeight: 800, mb: 3 }}>
+      <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
         Sales History
       </Typography>
+      <TextField
+        placeholder="Find a sale by receipt number…"
+        value={receiptSearch}
+        onChange={(e) => setReceiptSearch(e.target.value)}
+        size="small"
+        fullWidth
+        sx={{ mb: 2, maxWidth: 420, bgcolor: 'background.paper' }}
+      />
 
-      <Paper variant="outlined">
+      {/* Phones: one tappable row per sale, like a payments app. */}
+      <Paper variant="outlined" sx={{ display: { xs: 'block', sm: 'none' }, borderRadius: '14px', overflow: 'hidden' }}>
+        {salesQuery.data?.data?.length === 0 && (
+          <Typography color="text.secondary" sx={{ p: 3, textAlign: 'center' }}>
+            No sales found.
+          </Typography>
+        )}
+        {salesQuery.data?.data?.map((s: Sale & { cashier?: { name: string } }, i: number) => (
+          <Box
+            key={s.id}
+            onClick={() => setDetailId(s.id)}
+            sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5, cursor: 'pointer', borderTop: i === 0 ? 0 : '1px solid', borderColor: 'divider', '&:active': { bgcolor: 'action.hover' } }}
+          >
+            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 15 }} noWrap>
+                Sale #{Number(s.receipt_number.split('-').pop()) || s.receipt_number}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" noWrap component="div">
+                {new Date(s.completed_at ?? s.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {s.cashier?.name ? ` · ${s.cashier.name}` : ''}
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+              <Typography sx={{ fontWeight: 800, fontSize: 15, whiteSpace: 'nowrap' }}>
+                {currency} {Number(s.grand_total).toLocaleString()}
+              </Typography>
+              <Chip label={s.status.replace('_', ' ')} size="small" color={STATUS_COLORS[s.status] ?? 'default'} sx={{ height: 20, fontSize: 11, textTransform: 'capitalize' }} />
+            </Box>
+          </Box>
+        ))}
+      </Paper>
+
+      <Paper variant="outlined" sx={{ display: { xs: 'none', sm: 'block' } }}>
         <Table>
           <TableHead>
             <TableRow>
@@ -153,15 +200,19 @@ function SaleDetailDialog({ id, canReturn, currency, onClose }: { id: number; ca
                         <TextField
                           type="number"
                           size="small"
-                          value={selected[item.id].quantity}
+                          value={(item.price_divisor ?? 1) > 1 ? selected[item.id].quantity / GRAMS_PER_KG : selected[item.id].quantity}
                           onChange={(e) =>
-                            setSelected((prev) => ({ ...prev, [item.id]: { ...prev[item.id], quantity: Number(e.target.value) } }))
+                            setSelected((prev) => ({
+                              ...prev,
+                              // Weighed lines are returned in kg (stored as grams).
+                              [item.id]: { ...prev[item.id], quantity: (item.price_divisor ?? 1) > 1 ? (kgToGrams(e.target.value) ?? 0) : Number(e.target.value) },
+                            }))
                           }
-                          sx={{ width: 70 }}
-                          slotProps={{ htmlInput: { max: item.quantity, min: 1 } }}
+                          sx={{ width: (item.price_divisor ?? 1) > 1 ? 100 : 70 }}
+                          slotProps={(item.price_divisor ?? 1) > 1 ? { htmlInput: { max: item.quantity / GRAMS_PER_KG, min: 0.001, step: 0.001 }, input: { endAdornment: <span style={{ fontSize: 12, marginLeft: 4 }}>kg</span> } } : { htmlInput: { max: item.quantity, min: 1 } }}
                         />
                       ) : (
-                        item.quantity
+                        formatQty(item.quantity, (item.price_divisor ?? 1) > 1)
                       )}
                     </TableCell>
                     <TableCell align="right">

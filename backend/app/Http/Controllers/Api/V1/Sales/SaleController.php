@@ -20,7 +20,7 @@ class SaleController extends Controller
         $canViewAll = $request->user()->can('sales.view.all');
         abort_unless($canViewAll || $request->user()->can('sales.view.own'), 403);
 
-        $sales = Sale::with('cashier:id,name')
+        $sales = Sale::with('cashier:id,name', 'payments.paymentMethod:id,name')
             ->when(! $canViewAll, fn ($q) => $q->where('cashier_id', $request->user()->id))
             ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', $request->integer('branch_id')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
@@ -36,7 +36,7 @@ class SaleController extends Controller
         $sale = $this->saleService->createSale($request->validated(), $request->user());
         $sale = $this->fiscalizationService->fiscalize($sale);
 
-        return (new SaleResource($sale->load('items', 'payments.paymentMethod', 'cashier')))
+        return (new SaleResource($sale->load('items.batches', 'payments.paymentMethod', 'cashier', 'prescription')))
             ->response()
             ->setStatusCode(201);
     }
@@ -46,7 +46,7 @@ class SaleController extends Controller
         $canViewAll = $request->user()->can('sales.view.all');
         abort_unless($canViewAll || ($request->user()->can('sales.view.own') && $sale->cashier_id === $request->user()->id), 403);
 
-        return new SaleResource($sale->load('items', 'payments.paymentMethod', 'cashier'));
+        return new SaleResource($sale->load('items.batches', 'payments.paymentMethod', 'cashier', 'prescription'));
     }
 
     public function completeHeld(CompleteHeldSaleRequest $request, Sale $sale)
@@ -69,7 +69,7 @@ class SaleController extends Controller
         abort_unless($sale->status === 'completed', 422, 'Only completed sales can be fiscalized.');
 
         return new SaleResource(
-            $this->fiscalizationService->fiscalize($sale)->load('items', 'payments.paymentMethod', 'cashier')
+            $this->fiscalizationService->fiscalize($sale)->load('items.batches', 'payments.paymentMethod', 'cashier', 'prescription')
         );
     }
 

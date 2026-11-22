@@ -41,6 +41,14 @@ class UpdateProductRequest extends FormRequest
             'has_serial' => ['sometimes', 'boolean'],
             'status' => ['sometimes', Rule::in(['active', 'inactive'])],
             'image' => ['sometimes', 'image', 'max:5120'],
+            'generic_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'strength' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'dosage_form' => ['sometimes', 'nullable', Rule::in(\App\Support\Pharmacy\PharmacyCatalog::DOSAGE_FORMS)],
+            'pack_size' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'manufacturer' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'requires_prescription' => ['sometimes', 'boolean'],
+            'is_controlled' => ['sometimes', 'boolean'],
+            'sold_by_weight' => ['sometimes', 'boolean'],
         ];
     }
 }

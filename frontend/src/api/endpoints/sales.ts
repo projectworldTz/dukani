@@ -1,11 +1,12 @@
 import { api } from '../client'
-import type { PaymentMethod, Sale } from '../../types'
+import type { PaymentMethod, Prescription, Sale } from '../../types'
 
 export interface SaleItemPayload {
   product_id: number
   quantity: number
   unit_price?: number
   discount_amount?: number
+  dosage_instructions?: string
 }
 
 export interface CreateSalePayload {
@@ -19,6 +20,7 @@ export interface CreateSalePayload {
   redeem_points?: number
   idempotency_key?: string
   items: SaleItemPayload[]
+  prescription?: Prescription
   payments?: { payment_method_id: number; amount: number; reference?: string }[]
 }
 
@@ -31,7 +33,7 @@ export const salesApi = {
   held: (branchId: number) => api.get<Sale[]>('/sales/held', { params: { branch_id: branchId } }).then((r) => r.data),
   complete: (saleId: number, payments: { payment_method_id: number; amount: number; reference?: string }[], redeemPoints?: number) =>
     api.post<Sale>(`/sales/${saleId}/complete`, { payments, redeem_points: redeemPoints }).then((r) => r.data),
-  list: (params?: { branch_id?: number; status?: string; receipt_number?: string; page?: number }) =>
+  list: (params?: { branch_id?: number; status?: string; receipt_number?: string; page?: number; per_page?: number }) =>
     api.get('/sales', { params }).then((r) => r.data),
   show: (id: number) => api.get<Sale>(`/sales/${id}`).then((r) => r.data),
   createReturn: (id: number, items: { sale_item_id: number; quantity: number; condition: 'sellable' | 'damaged' }[], reason?: string, refundPaymentMethodId?: number) =>

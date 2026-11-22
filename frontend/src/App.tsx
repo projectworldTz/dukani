@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
 import { ToastHost } from './components/common/ToastHost'
 import { AppLayout } from './components/layout/AppLayout'
@@ -22,14 +22,41 @@ import { SuppliersPage } from './pages/purchasing/SuppliersPage'
 import { LandingPage } from './pages/marketing/LandingPage'
 import { PlatformAdminPage } from './pages/platform/PlatformAdminPage'
 import { QuotationsPage } from './pages/quotations/QuotationsPage'
+import { ReportsPage } from './pages/reports/ReportsPage'
 import { RolesPage } from './pages/roles/RolesPage'
 import { SalesHistoryPage } from './pages/sales/SalesHistoryPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 import { StaffPage } from './pages/staff/StaffPage'
 import { useAuthStore } from './stores/authStore'
+import { usePlatform } from './hooks/usePlatform'
+import { ExpiryPage } from './pages/pharmacy/ExpiryPage'
+import { PrescriptionsPage } from './pages/pharmacy/PrescriptionsPage'
+import { ControlledDrugsPage } from './pages/pharmacy/ControlledDrugsPage'
+import { PriceBoardPage } from './pages/butchery/PriceBoardPage'
+import { CarcassPage } from './pages/butchery/CarcassPage'
 
 function Shell({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>
+}
+
+/** The same products screen serves both platforms; each lives at its own natural URL. */
+function ProductsRoute({ path }: { path: '/products' | '/medicines' }) {
+  const { isPharmacy, terms } = usePlatform()
+  const { search } = useLocation()
+  if (terms.productsPath !== path) return <Navigate to={`${terms.productsPath}${search}`} replace />
+  return <Shell key={isPharmacy ? 'pharmacy' : 'general'}><ProductsPage /></Shell>
+}
+
+/** Pharmacy-only screens bounce other shops back home. */
+function PharmacyOnly({ children }: { children: React.ReactNode }) {
+  const { isPharmacy } = usePlatform()
+  return isPharmacy ? <Shell>{children}</Shell> : <Navigate to="/" replace />
+}
+
+/** Butchery-only screens bounce other shops back home. */
+function ButcheryOnly({ children }: { children: React.ReactNode }) {
+  const { isButchery } = usePlatform()
+  return isButchery ? <Shell>{children}</Shell> : <Navigate to="/" replace />
 }
 
 /** What an authenticated visitor sees at "/" — mirrors what ProtectedRoute would do,
@@ -70,10 +97,20 @@ export default function App() {
             <Route path="/pos" element={<Shell><PosCheckoutPage /></Shell>} />
           </Route>
           <Route element={<ProtectedRoute permission="products.manage" />}>
-            <Route path="/products" element={<Shell><ProductsPage /></Shell>} />
+            <Route path="/products" element={<ProductsRoute path="/products" />} />
+            <Route path="/medicines" element={<ProductsRoute path="/medicines" />} />
+            <Route path="/price-board" element={<ButcheryOnly><PriceBoardPage /></ButcheryOnly>} />
           </Route>
           <Route element={<ProtectedRoute permission="inventory.view" />}>
             <Route path="/inventory" element={<Shell><InventoryPage /></Shell>} />
+            <Route path="/expiry" element={<PharmacyOnly><ExpiryPage /></PharmacyOnly>} />
+            <Route path="/controlled-drugs" element={<PharmacyOnly><ControlledDrugsPage /></PharmacyOnly>} />
+          </Route>
+          <Route element={<ProtectedRoute permission="inventory.adjust" />}>
+            <Route path="/carcass" element={<ButcheryOnly><CarcassPage /></ButcheryOnly>} />
+          </Route>
+          <Route element={<ProtectedRoute anyOf={['sales.view.own', 'sales.view.all']} />}>
+            <Route path="/prescriptions" element={<PharmacyOnly><PrescriptionsPage /></PharmacyOnly>} />
           </Route>
           <Route element={<ProtectedRoute permission="suppliers.manage" />}>
             <Route path="/suppliers" element={<Shell><SuppliersPage /></Shell>} />
@@ -89,6 +126,9 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute anyOf={['sales.view.own', 'sales.view.all']} />}>
             <Route path="/sales" element={<Shell><SalesHistoryPage /></Shell>} />
+          </Route>
+          <Route element={<ProtectedRoute permission="sales.view.all" />}>
+            <Route path="/reports" element={<Shell><ReportsPage /></Shell>} />
           </Route>
           <Route element={<ProtectedRoute permission="customers.manage" />}>
             <Route path="/customers" element={<Shell><CustomersPage /></Shell>} />
