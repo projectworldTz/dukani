@@ -51,7 +51,9 @@ export default defineConfig({
       workbox: {
         // Never cache API calls — POS data (stock, prices, sales) must always be live.
         // Only the app shell (JS/CSS/HTML/icons) is precached for fast/offline loading.
-        navigateFallbackDenylist: [/^\/backend\//],
+        // Opening a real file (robots.txt, sitemap.xml, og-image.png…) in the address
+        // bar must reach the server, not be answered with the app's index.html.
+        navigateFallbackDenylist: [/^\/backend\//, /\/[^/?]+\.[a-z0-9]{2,5}$/i],
         runtimeCaching: [
           {
             urlPattern: /\/backend\/api\//,
