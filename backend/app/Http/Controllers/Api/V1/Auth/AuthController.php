@@ -13,6 +13,8 @@ use App\Models\BusinessNotification;
 use App\Models\Scopes\BusinessScope;
 use App\Models\User;
 use App\Services\Business\BusinessRegistrationService;
+use App\Services\Platform\NewClientAlert;
+use App\Support\Subscription\Subscription;
 use App\Support\Tenancy\BusinessContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -34,6 +36,10 @@ class AuthController extends Controller
         $owner->load('business');
         $this->sendVerificationEmail($owner);
         $token = $owner->createToken('dukani')->plainTextToken;
+
+        // Tell the platform owner (email + SMS) once the client already has their
+        // response, so a slow mail/SMS gateway never delays or breaks sign-up.
+        dispatch(fn () => app(NewClientAlert::class)->send($business->fresh(), $owner))->afterResponse();
 
         return response()->json([
             'token' => $token,
@@ -70,8 +76,10 @@ class AuthController extends Controller
 
         if ($user->business_id && $user->business?->status !== 'active') {
             throw ValidationException::withMessages([
-                'email' => __($user->business?->license_expires_at?->isPast()
-                    ? 'This business license has expired. Please renew to continue.'
+                'email' => __(Subscription::isExpired($user->business)
+                    ? ($user->business->plan === Subscription::TRIAL
+                        ? Subscription::expiredMessage($user->business)
+                        : 'This business license has expired. Please renew to continue.')
                     : 'This business account is suspended.'),
             ]);
         }
@@ -120,21 +128,30 @@ class AuthController extends Controller
             return;
         }
 
-        if (! $business->license_expires_at->isFuture() || $business->license_expires_at->diffInDays(now()) > 30) {
+        // A free trial only gets the reminder in its last 3 days; a paid license 30 days out.
+        $isTrial = Subscription::isTrial($business);
+        $window = $isTrial ? 3 : 30;
+        if (! $business->license_expires_at->isFuture() || $business->license_expires_at->diffInDays(now(), true) > $window) {
             return;
         }
 
         BusinessNotification::create([
             'business_id' => $business->id,
             'type' => 'license_expiring',
-            'title' => 'License renewal due soon',
-            'message' => "Your Dukani license expires on {$business->license_expires_at->format('d M Y')}. Please renew to avoid interruption.",
+            'title' => $isTrial ? 'Your free trial ends soon' : 'License renewal due soon',
+            'message' => $isTrial
+                ? "Your free trial ends on {$business->license_expires_at->format('d M Y')}. Subscribe now to keep using Dukani without interruption."
+                : "Your Dukani license expires on {$business->license_expires_at->format('d M Y')}. Please renew to avoid interruption.",
         ]);
 
         $business->update(['license_expiry_alerted_at' => now()]);
 
         if ($ownerEmail = $business->owner?->email) {
-            Mail::to($ownerEmail)->send(new LicenseExpiringMail($business));
+            try {
+                Mail::to($ownerEmail)->send(new LicenseExpiringMail($business));
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
     }
 

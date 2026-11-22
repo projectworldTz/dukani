@@ -34,13 +34,16 @@ export interface PlatformBusinessDetail {
   owner: { name: string; email: string; phone: string | null; joined_at: string } | null
 }
 
+/** Paid periods the platform admin can grant (extending marks the business paid). */
+export type LicenseMonths = 1 | 3 | 6 | 12
+
 export const platformApi = {
   businesses: (trashed = false) =>
     api.get<{ data: PlatformBusiness[] }>('/platform/businesses', { params: trashed ? { trashed: 1 } : undefined }).then((r) => r.data.data),
   business: (id: number) => api.get<PlatformBusinessDetail>(`/platform/businesses/${id}`).then((r) => r.data),
   updateStatus: (id: number, status: 'active' | 'suspended') =>
     api.put(`/platform/businesses/${id}/status`, { status }).then((r) => r.data),
-  extendLicense: (id: number, months: 6 | 12) =>
+  extendLicense: (id: number, months: LicenseMonths) =>
     api.post(`/platform/businesses/${id}/extend-license`, { months }).then((r) => r.data),
   impersonate: (id: number) =>
     api.post<{ token: string; user: AuthUser }>(`/platform/businesses/${id}/impersonate`).then((r) => r.data),

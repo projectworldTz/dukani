@@ -143,7 +143,8 @@ class AccountLifecycleFlowTest extends TestCase
     {
         Mail::fake();
         [$ownerToken, $owner, $business] = $this->registerBusiness();
-        $business->update(['license_expires_at' => now()->addDays(10)]);
+        // A paid license warns 30 days out (a free trial only in its last 3 days).
+        $business->update(['plan' => 'paid', 'license_expires_at' => now()->addDays(10)]);
 
         $this->postJson('/api/v1/auth/login', ['email' => $owner['email'], 'password' => 'password123'])->assertOk();
 
@@ -165,7 +166,7 @@ class AccountLifecycleFlowTest extends TestCase
         // The token was issued while the business was still active/licensed.
         $this->withToken($ownerToken)->getJson('/api/v1/branches')->assertOk();
 
-        $business->update(['license_expires_at' => now()->subDay()]);
+        $business->update(['plan' => 'paid', 'license_expires_at' => now()->subDay()]);
 
         $this->postJson('/api/v1/auth/login', ['email' => $owner['email'], 'password' => 'password123'])
             ->assertStatus(422)
@@ -180,8 +181,9 @@ class AccountLifecycleFlowTest extends TestCase
         // next call actually reflects the suspension applied above.
         $this->app['auth']->forgetGuards();
 
-        // The token issued before expiry is now rejected too, not just new logins.
-        $this->withToken($ownerToken)->getJson('/api/v1/branches')->assertStatus(403);
+        // The token issued before expiry is now rejected too, not just new logins —
+        // with 402 + how to pay, so the app can show its "subscription ended" screen.
+        $this->withToken($ownerToken)->getJson('/api/v1/branches')->assertStatus(402)->assertJsonPath('code', 'subscription_expired');
 
         // Logout itself still works so a locked-out user isn't stuck.
         $this->withToken($ownerToken)->postJson('/api/v1/auth/logout')->assertOk();

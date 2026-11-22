@@ -15,7 +15,7 @@ const schema = z
     business_name: z.string().min(2, 'Business name is required'),
     owner_name: z.string().min(2, 'Your name is required'),
     email: z.string().email(),
-    phone: z.string().optional(),
+    phone: z.string().trim().refine((v) => v.replace(/\D/g, '').length >= 9, 'Enter your phone number so we can help you get started'),
     password: z.string().min(8, 'At least 8 characters'),
     password_confirmation: z.string(),
   })
@@ -251,7 +251,16 @@ export function RegisterPage() {
                   error={!!errors.email}
                   helperText={errors.email?.message}
                 />
-                <TextField label="Phone (optional)" fullWidth {...register('phone')} />
+                <TextField
+                  label="Phone number"
+                  type="tel"
+                  placeholder="0712 345 678"
+                  fullWidth
+                  {...register('phone')}
+                  error={!!errors.phone}
+                  helperText={errors.phone?.message ?? 'We will call to help you set up during your free trial.'}
+                  slotProps={{ htmlInput: { inputMode: 'tel', autoComplete: 'tel' } }}
+                />
                 <TextField
                   label="Password"
                   type="password"
@@ -285,6 +294,9 @@ export function RegisterPage() {
                 >
                   Create business
                 </Button>
+                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+                  Free for 14 days — no payment needed to start.
+                </Typography>
               </Stack>
             </form>
 

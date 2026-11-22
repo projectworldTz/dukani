@@ -36,6 +36,7 @@ class Business extends Model
         'status',
         'license_expires_at',
         'license_expiry_alerted_at',
+        'trial_reminder_sent_at',
         'deletion_reason',
     ];
 
@@ -44,6 +45,7 @@ class Business extends Model
         return [
             'license_expires_at' => 'datetime',
             'license_expiry_alerted_at' => 'datetime',
+            'trial_reminder_sent_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
     }

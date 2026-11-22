@@ -21,7 +21,18 @@ export interface AuthUser {
     category?: string | null
     /** 'pharmacy' for Pharmacy & Health businesses — switches the whole app to the pharmacy platform. */
     platform?: 'general' | 'pharmacy' | 'butchery'
+    subscription?: SubscriptionInfo
   } | null
+}
+
+/** Free trial / paid status of the business, plus how to reach the seller to pay. */
+export interface SubscriptionInfo {
+  plan: string | null
+  is_trial: boolean
+  expires_at: string | null
+  days_left: number | null
+  is_expired: boolean
+  contact: { name?: string; phone?: string; whatsapp?: string; email?: string; payment_info?: string }
 }
 
 export interface Branch {

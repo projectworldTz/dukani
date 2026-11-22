@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Subscription\Subscription;
 use App\Support\Tenancy\BusinessContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -47,8 +48,21 @@ class ResolveBusiness
             BusinessContext::set($user->business_id);
             app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-            if ($user->business?->status !== 'active' && ! $request->is('api/v1/auth/logout')) {
-                abort(403, 'This business account is suspended.');
+            if (! $request->is('api/v1/auth/logout')) {
+                // Trial over / license lapsed: 402 with how to pay, so the app can show the
+                // "trial ended" screen — checked first, even before the login-time
+                // auto-suspend has flipped the status, so open sessions lock at expiry.
+                if (Subscription::isExpired($user->business)) {
+                    return response()->json([
+                        'message' => Subscription::expiredMessage($user->business),
+                        'code' => 'subscription_expired',
+                        'subscription' => Subscription::summary($user->business),
+                    ], 402);
+                }
+
+                if ($user->business?->status !== 'active') {
+                    abort(403, 'This business account is suspended.');
+                }
             }
         }
 

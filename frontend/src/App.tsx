@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
 import { ToastHost } from './components/common/ToastHost'
@@ -21,6 +22,8 @@ import { StockTransfersPage } from './pages/purchasing/StockTransfersPage'
 import { SuppliersPage } from './pages/purchasing/SuppliersPage'
 import { LandingPage } from './pages/marketing/LandingPage'
 import { PlatformAdminPage } from './pages/platform/PlatformAdminPage'
+import { SubscriptionEndedScreen } from './components/subscription/SubscriptionEndedScreen'
+import { useSubscriptionStore } from './stores/subscriptionStore'
 import { QuotationsPage } from './pages/quotations/QuotationsPage'
 import { ReportsPage } from './pages/reports/ReportsPage'
 import { RolesPage } from './pages/roles/RolesPage'
@@ -76,6 +79,17 @@ function Home() {
 
 export default function App() {
   const token = useAuthStore((s) => s.token)
+  const expiresAt = useAuthStore((s) => s.user?.business?.subscription?.expires_at)
+  const ended = useSubscriptionStore((s) => s.ended)
+
+  // A signed-out visitor never sees a stale "trial ended" screen.
+  useEffect(() => {
+    if (!token) useSubscriptionStore.getState().setEnded(null)
+  }, [token])
+
+  // Locked business: the API refuses everything with 402, so show how to pay instead of the app.
+  const trialOver = !!expiresAt && new Date(expiresAt).getTime() <= Date.now()
+  if (token && (ended || trialOver)) return <SubscriptionEndedScreen />
 
   return (
     <BrowserRouter>

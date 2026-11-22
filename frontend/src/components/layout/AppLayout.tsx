@@ -77,6 +77,7 @@ import { usePlatform } from '../../hooks/usePlatform'
 import { useToastStore } from '../../stores/toastStore'
 import { SessionsDialog } from '../common/SessionsDialog'
 import { CalculatorPanel } from '../calculator/CalculatorPanel'
+import { TrialBanner } from '../subscription/TrialBanner'
 import { useCalculatorStore } from '../calculator/calculatorStore'
 
 const DRAWER_WIDTH = 264
@@ -759,6 +760,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </Box>
           </Alert>
         )}
+        {!isPlatformAdmin && <TrialBanner />}
         <Box
           component="main"
           sx={{

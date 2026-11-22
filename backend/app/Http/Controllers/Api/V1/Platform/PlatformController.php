@@ -118,20 +118,25 @@ class PlatformController extends Controller
     {
         $this->assertPlatformAdmin($request);
 
-        $data = $request->validate(['months' => ['required', Rule::in([6, 12])]]);
+        $data = $request->validate(['months' => ['required', Rule::in([1, 3, 6, 12])]]);
 
         $oldExpiry = $business->license_expires_at;
+        $oldPlan = $business->plan;
         $base = $business->license_expires_at?->isFuture() ? $business->license_expires_at : now();
         $business->update([
             'license_expires_at' => $base->copy()->addMonths($data['months']),
             'license_expiry_alerted_at' => null,
+            // Extending means the client paid: the trial becomes a paid plan, and a
+            // business that was locked only because its license lapsed opens again.
+            'plan' => \App\Support\Subscription\Subscription::PAID,
+            ...($business->status === 'suspended' && $oldExpiry?->isPast() ? ['status' => 'active'] : []),
         ]);
 
         $this->auditLogger->log(
             'business.license_extended',
             $business,
-            oldValues: ['license_expires_at' => $oldExpiry?->toDateTimeString()],
-            newValues: ['license_expires_at' => $business->license_expires_at->toDateTimeString(), 'months' => $data['months']],
+            oldValues: ['license_expires_at' => $oldExpiry?->toDateTimeString(), 'plan' => $oldPlan],
+            newValues: ['license_expires_at' => $business->license_expires_at->toDateTimeString(), 'months' => $data['months'], 'plan' => $business->plan],
             request: $request,
         );
 

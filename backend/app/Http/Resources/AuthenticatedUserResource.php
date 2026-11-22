@@ -36,6 +36,7 @@ class AuthenticatedUserResource extends JsonResource
                 'advanced_features' => (bool) $this->business->settings?->advanced_features,
                 'category' => $this->business->category,
                 'platform' => $this->business->platform(),
+                'subscription' => \App\Support\Subscription\Subscription::summary($this->business),
             ]),
         ];
     }

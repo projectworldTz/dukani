@@ -12,6 +12,8 @@ import {
   DialogTitle,
   Grid,
   Link,
+  Menu,
+  MenuItem,
   Paper,
   Stack,
   Tab,
@@ -28,7 +30,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { platformApi } from '../../api/endpoints/platform'
+import { platformApi, type LicenseMonths } from '../../api/endpoints/platform'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
 import { BusinessDetailDialog } from './BusinessDetailDialog'
@@ -64,6 +66,23 @@ function LicenseCell({ expiresAt }: { expiresAt: string | null }) {
     </Stack>
   )
 }
+
+/** Trial / Trial ended / Paid at a glance — trials are the clients to call. */
+function PlanChip({ plan, expiresAt }: { plan: string | null; expiresAt: string | null }) {
+  const expired = !!expiresAt && new Date(expiresAt).getTime() <= Date.now()
+  if (plan === 'trial') {
+    return <Chip size="small" label={expired ? 'Trial ended' : 'Trial'} color={expired ? 'error' : 'info'} variant={expired ? 'filled' : 'outlined'} sx={{ fontWeight: 700 }} />
+  }
+  if (plan === 'paid') return <Chip size="small" label="Paid" color="success" variant="outlined" sx={{ fontWeight: 700 }} />
+  return <>{plan ?? '—'}</>
+}
+
+const LICENSE_OPTIONS: { months: LicenseMonths; label: string }[] = [
+  { months: 1, label: '1 month' },
+  { months: 3, label: '3 months' },
+  { months: 6, label: '6 months' },
+  { months: 12, label: '12 months' },
+]
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
@@ -103,12 +122,13 @@ export function PlatformAdminPage() {
   })
 
   const extendLicenseMutation = useMutation({
-    mutationFn: ({ id, months }: { id: number; months: 6 | 12 }) => platformApi.extendLicense(id, months),
+    mutationFn: ({ id, months }: { id: number; months: LicenseMonths }) => platformApi.extendLicense(id, months),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['platform'] })
-      useToastStore.getState().show(`License extended by ${variables.months} months.`, 'success')
+      useToastStore.getState().show(`Marked paid — license extended by ${variables.months} month${variables.months === 1 ? '' : 's'}. Access is open again.`, 'success')
     },
   })
+  const [extendMenu, setExtendMenu] = useState<{ anchor: HTMLElement; id: number } | null>(null)
 
   const deleteMutation = useMutation({
     mutationFn: ({ id, reason }: { id: number; reason: string }) => platformApi.deleteBusiness(id, reason),
@@ -210,7 +230,9 @@ export function PlatformAdminPage() {
                     </Typography>
                   </TableCell>
                 ) : (
-                  <TableCell>{b.plan}</TableCell>
+                  <TableCell>
+                    <PlanChip plan={b.plan} expiresAt={b.license_expires_at} />
+                  </TableCell>
                 )}
                 <TableCell>{b.currency}</TableCell>
                 <TableCell align="right">{b.users_count}</TableCell>
@@ -250,26 +272,16 @@ export function PlatformAdminPage() {
                             View as Owner
                           </Button>
                         </Tooltip>
-                        <Tooltip title="Extend license by 6 months">
+                        <Tooltip title="The client paid: extend their license (marks them Paid and unlocks access)">
                           <Button
                             size="small"
-                            variant="outlined"
+                            variant={b.plan === 'trial' ? 'contained' : 'outlined'}
+                            color="success"
                             startIcon={<EventAvailable />}
-                            loading={extendLicenseMutation.isPending}
-                            onClick={() => extendLicenseMutation.mutate({ id: b.id, months: 6 })}
+                            loading={extendLicenseMutation.isPending && extendLicenseMutation.variables?.id === b.id}
+                            onClick={(e) => setExtendMenu({ anchor: e.currentTarget, id: b.id })}
                           >
-                            +6mo
-                          </Button>
-                        </Tooltip>
-                        <Tooltip title="Extend license by 12 months">
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<EventAvailable />}
-                            loading={extendLicenseMutation.isPending}
-                            onClick={() => extendLicenseMutation.mutate({ id: b.id, months: 12 })}
-                          >
-                            +12mo
+                            {b.plan === 'trial' ? 'Mark paid' : 'Extend'}
                           </Button>
                         </Tooltip>
                         {b.status === 'active' ? (
@@ -313,6 +325,19 @@ export function PlatformAdminPage() {
         </Table>
       </Paper>
 
+      <Menu anchorEl={extendMenu?.anchor} open={!!extendMenu} onClose={() => setExtendMenu(null)}>
+        {LICENSE_OPTIONS.map((o) => (
+          <MenuItem
+            key={o.months}
+            onClick={() => {
+              if (extendMenu) extendLicenseMutation.mutate({ id: extendMenu.id, months: o.months })
+              setExtendMenu(null)
+            }}
+          >
+            Paid for {o.label}
+          </MenuItem>
+        ))}
+      </Menu>
       <BusinessDetailDialog businessId={detailId} onClose={() => setDetailId(null)} />
 
       <Dialog open={!!reasonDialog} onClose={closeReasonDialog} maxWidth="sm" fullWidth>

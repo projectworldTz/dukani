@@ -35,6 +35,10 @@ class BusinessRegistrationService
                 'currency' => $data['currency'] ?? 'TZS',
                 'timezone' => $data['timezone'] ?? 'Africa/Dar_es_Salaam',
                 'status' => 'active',
+                // Every new business gets a free trial; it locks when this date passes
+                // unless the platform admin extends the license after payment.
+                'plan' => \App\Support\Subscription\Subscription::TRIAL,
+                'license_expires_at' => now()->addDays(config('dukani.trial_days')),
             ]);
 
             $owner = User::create([
